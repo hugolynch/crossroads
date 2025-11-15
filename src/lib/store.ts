@@ -41,6 +41,9 @@ export interface Collaborator {
 
 export const collaborators = writable<Collaborator[]>([]);
 
+// Current puzzle ID (for tracking which puzzle is loaded/being edited)
+export const currentPuzzleId = writable<string | null>(null);
+
 // Update grid when dimensions change
 rows.subscribe((newRows) => {
   grid.update(g => {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { puzzleTitle, notes, collaborators, grid, rows, cols, clues, symmetry, selectedRow, selectedCol } from '../lib/store';
+  import { puzzleTitle, notes, collaborators, grid, rows, cols, clues, symmetry, selectedRow, selectedCol, currentPuzzleId } from '../lib/store';
   import type { Collaborator, CollaboratorRole } from '../lib/store';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
@@ -22,7 +22,6 @@
   }
 
   let savedPuzzles: PuzzleData[] = [];
-  let currentPuzzleId: string | null = null;
   let showLoadSuccess = false;
   let loadSuccessTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -48,9 +47,10 @@
   function savePuzzle() {
     try {
       const currentTitle = get(puzzleTitle);
+      const $currentPuzzleId = get(currentPuzzleId);
       
       // Use current puzzle ID if it exists, otherwise generate a new one
-      const puzzleId = currentPuzzleId || Date.now().toString();
+      const puzzleId = $currentPuzzleId || Date.now().toString();
       
       const puzzleData: PuzzleData = {
         id: puzzleId,
@@ -78,7 +78,7 @@
       }
       
       // Set as current puzzle ID
-      currentPuzzleId = puzzleId;
+      currentPuzzleId.set(puzzleId);
       
       localStorage.setItem(STORAGE_KEY, JSON.stringify(puzzles));
       loadSavedPuzzlesList();
@@ -116,7 +116,7 @@
       puzzles.push(puzzleData);
       
       // Set as current puzzle ID
-      currentPuzzleId = puzzleId;
+      currentPuzzleId.set(puzzleId);
       
       localStorage.setItem(STORAGE_KEY, JSON.stringify(puzzles));
       loadSavedPuzzlesList();
@@ -135,7 +135,7 @@
       }
 
       // Set as current puzzle ID
-      currentPuzzleId = puzzleId;
+      currentPuzzleId.set(puzzleId);
 
       // Load grid dimensions first
       rows.set(puzzle.rows);
