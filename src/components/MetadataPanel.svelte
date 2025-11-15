@@ -24,6 +24,9 @@
   let savedPuzzles: PuzzleData[] = [];
   let showLoadSuccess = false;
   let loadSuccessTimeout: ReturnType<typeof setTimeout> | null = null;
+  let showSaveSuccess = false;
+  let saveSuccessTimeout: ReturnType<typeof setTimeout> | null = null;
+  let saveSuccessMessage = '';
 
   onMount(() => {
     loadSavedPuzzlesList();
@@ -82,7 +85,16 @@
       
       localStorage.setItem(STORAGE_KEY, JSON.stringify(puzzles));
       loadSavedPuzzlesList();
-      alert('Puzzle saved successfully!');
+      
+      // Show success message
+      saveSuccessMessage = 'Puzzle saved successfully!';
+      showSaveSuccess = true;
+      if (saveSuccessTimeout) {
+        clearTimeout(saveSuccessTimeout);
+      }
+      saveSuccessTimeout = setTimeout(() => {
+        showSaveSuccess = false;
+      }, 3000);
     } catch (error) {
       alert('Error saving puzzle: ' + error);
     }
@@ -120,7 +132,16 @@
       
       localStorage.setItem(STORAGE_KEY, JSON.stringify(puzzles));
       loadSavedPuzzlesList();
-      alert('Puzzle saved as new version!');
+      
+      // Show success message
+      saveSuccessMessage = 'Puzzle saved as new version!';
+      showSaveSuccess = true;
+      if (saveSuccessTimeout) {
+        clearTimeout(saveSuccessTimeout);
+      }
+      saveSuccessTimeout = setTimeout(() => {
+        showSaveSuccess = false;
+      }, 3000);
     } catch (error) {
       alert('Error saving puzzle: ' + error);
     }
@@ -246,6 +267,11 @@
   {#if showLoadSuccess}
     <div class="success-alert">
       Puzzle loaded successfully!
+    </div>
+  {/if}
+  {#if showSaveSuccess}
+    <div class="success-alert">
+      {saveSuccessMessage}
     </div>
   {/if}
   <h2>Puzzle Metadata</h2>
