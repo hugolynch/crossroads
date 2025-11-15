@@ -104,6 +104,9 @@
     ></div>
   {/if}
   <div class="center-panel">
+    <div class="logo-container">
+      <img src="/logo.svg" alt="Crossword Editor" class="logo" />
+    </div>
     <Grid />
   </div>
   {#if !rightPanelCollapsed}
@@ -229,11 +232,18 @@
   .center-panel {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 20px;
     overflow: auto;
     min-width: 0;
     min-height: 0;
+  }
+
+  .logo-container {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
   }
 </style>
