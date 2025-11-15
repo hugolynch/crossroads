@@ -23,6 +23,8 @@
 
   let savedPuzzles: PuzzleData[] = [];
   let currentPuzzleId: string | null = null;
+  let showLoadSuccess = false;
+  let loadSuccessTimeout: ReturnType<typeof setTimeout> | null = null;
 
   onMount(() => {
     loadSavedPuzzlesList();
@@ -156,7 +158,15 @@
       }
       
       loadSavedPuzzlesList();
-      alert('Puzzle loaded successfully!');
+      
+      // Show success message
+      showLoadSuccess = true;
+      if (loadSuccessTimeout) {
+        clearTimeout(loadSuccessTimeout);
+      }
+      loadSuccessTimeout = setTimeout(() => {
+        showLoadSuccess = false;
+      }, 3000);
     } catch (error) {
       alert('Error loading puzzle: ' + error);
     }
@@ -233,6 +243,11 @@
 </script>
 
 <div class="metadata-panel">
+  {#if showLoadSuccess}
+    <div class="success-alert">
+      Puzzle loaded successfully!
+    </div>
+  {/if}
   <h2>Puzzle Metadata</h2>
   <div class="control-group">
     <label for="title">Title:</label>
@@ -367,6 +382,34 @@
 <style>
   .metadata-panel {
     padding: 20px;
+    position: relative;
+  }
+
+  .success-alert {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #F2F3FB;
+    color: #2E2F38;
+    border: 1px solid #8C8E98;
+    border-radius: 3px;
+    padding: 12px 20px;
+    font-size: 14px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(-50%) translateY(-20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
   }
 
   .metadata-panel h2 {
