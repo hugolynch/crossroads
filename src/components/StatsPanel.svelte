@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { grid, words, rows, cols } from '../lib/store';
+  import { grid, words, rows, cols, hoveredWordLength } from '../lib/store';
 
   $: stats = calculateStats($grid, $words, $rows, $cols);
 
@@ -77,7 +77,12 @@
     {:else}
       <div class="length-distribution">
         {#each Array.from(stats.wordsByLength.entries()).sort((a, b) => a[0] - b[0]) as [length, count]}
-          <div class="length-item">
+          <div 
+            class="length-item"
+            class:hovered={$hoveredWordLength === length}
+            on:mouseenter={() => hoveredWordLength.set(length)}
+            on:mouseleave={() => hoveredWordLength.set(null)}
+          >
             <span class="length-label">{length} letters:</span>
             <span class="length-count">{count}</span>
           </div>
@@ -145,6 +150,14 @@
     display: flex;
     justify-content: space-between;
     padding: var(--carbon-spacing-02) 0;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s;
+  }
+
+  .length-item:hover,
+  .length-item.hovered {
+    background: var(--carbon-gray-10);
   }
 
   .length-label {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { grid, selectedRow, selectedCol, selectedDirection, words, potentialNumbers, symmetry, rows, cols, highlightShortWords, highlightUncheckedCells } from '../lib/store';
+  import { grid, selectedRow, selectedCol, selectedDirection, words, potentialNumbers, symmetry, rows, cols, highlightShortWords, highlightUncheckedCells, hoveredWordLength } from '../lib/store';
   import { getWordNumber, getWordCells } from '../lib/gridUtils';
   import type { SymmetryType } from '../lib/store';
   import type { Word, Cell } from '../lib/types';
@@ -163,6 +163,29 @@
     
     // Return true if either direction has a range of exactly 1
     return horizontalLength === 1 || verticalLength === 1;
+  }
+
+  // Check if a cell is part of a word with the hovered length
+  function isCellInHoveredLength(row: number, col: number, wordsList: Word[], hoveredLength: number | null): boolean {
+    if (hoveredLength === null) return false;
+    
+    const $grid = get(grid);
+    const cell = $grid[row]?.[col];
+    
+    // Black cells are never part of words
+    if (cell?.type === 'black') return false;
+    
+    // Check if this cell is part of any word with the hovered length
+    return wordsList.some(word => {
+      if (word.length !== hoveredLength) return false;
+      
+      // Check if this cell is part of this word
+      if (word.direction === 'across') {
+        return word.startRow === row && col >= word.startCol && col < word.startCol + word.length;
+      } else {
+        return word.startCol === col && row >= word.startRow && row < word.startRow + word.length;
+      }
+    });
   }
 
   function handleCellClick(row: number, col: number, event: MouseEvent) {
@@ -725,12 +748,14 @@
         {@const inCurrentWord = isCellInCurrentWord(rowIndex, colIndex, $selectedRow, $selectedCol, $selectedDirection)}
         {@const inShortWord = $highlightShortWords && isCellInShortRange(rowIndex, colIndex, $words)}
         {@const inUncheckedCell = $highlightUncheckedCells && isCellInUncheckedRange(rowIndex, colIndex, $words)}
+        {@const inHoveredLength = isCellInHoveredLength(rowIndex, colIndex, $words, $hoveredWordLength)}
         <div
           class="cell"
           class:selected={isSelected}
           class:in-word={inCurrentWord}
           class:short-word={inShortWord}
           class:unchecked={inUncheckedCell}
+          class:length-hovered={inHoveredLength}
           class:black={cell.type === 'black'}
           class:letter={cell.type === 'letter'}
           role="button"
@@ -839,6 +864,22 @@
   }
 
   .cell.black.in-word {
+    background: #000000 !important;
+  }
+
+  .cell.length-hovered {
+    background: #FDF2E9;
+  }
+
+  .cell.in-word.length-hovered {
+    background: #FADEC9;
+  }
+
+  .cell.selected.in-word.length-hovered {
+    background: #F5C197 !important;
+  }
+
+  .cell.black.length-hovered {
     background: #000000 !important;
   }
 

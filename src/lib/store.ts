@@ -14,6 +14,7 @@ export const symmetry = writable<SymmetryType>('none');
 export const highlightShortWords = writable<boolean>(false);
 export const highlightUncheckedCells = writable<boolean>(false);
 export const showOneLetterClues = writable<boolean>(false);
+export const hoveredWordLength = writable<number | null>(null);
 
 // Derived store for detected and numbered words
 export const words = derived(grid, ($grid) => {
