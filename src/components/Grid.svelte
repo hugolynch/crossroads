@@ -357,7 +357,7 @@
       const isShiftTab = event.shiftKey;
       
       if (isShiftTab) {
-        // Shift+Tab: Go to previous word in same direction
+        // Shift+Tab: Go to previous word, switching direction when wrapping
         const currentWord = getWordAtCell($selectedRow, $selectedCol, $selectedDirection);
         const wordsInDirection = $words.filter(w => w.direction === $selectedDirection);
         
@@ -380,19 +380,33 @@
           }
         }
         
-        // If no previous word found, wrap to last word
-        if (!prevWord && sortedWords.length > 0) {
-          prevWord = sortedWords[sortedWords.length - 1];
+        // If no previous word found, switch direction and go to last word in opposite direction
+        if (!prevWord) {
+          const oppositeDirection = $selectedDirection === 'across' ? 'down' : 'across';
+          const wordsInOppositeDirection = $words
+            .filter(w => w.direction === oppositeDirection)
+            .sort((a, b) => {
+              if (a.number !== b.number) return a.number - b.number;
+              if (a.startRow !== b.startRow) return a.startRow - b.startRow;
+              return a.startCol - b.startCol;
+            });
+          
+          if (wordsInOppositeDirection.length > 0) {
+            prevWord = wordsInOppositeDirection[wordsInOppositeDirection.length - 1];
+            selectedDirection.set(oppositeDirection);
+          } else if (sortedWords.length > 0) {
+            // Fallback: wrap to last word in same direction if no words in opposite direction
+            prevWord = sortedWords[sortedWords.length - 1];
+          }
         }
         
-        // Move to the start of the previous word (keep same direction)
+        // Move to the start of the previous word
         if (prevWord) {
           selectedRow.set(prevWord.startRow);
           selectedCol.set(prevWord.startCol);
-          // Keep the same direction, don't change it
         }
       } else {
-        // Tab: Skip to next word in current direction
+        // Tab: Skip to next word, switching direction when wrapping
         const currentWord = getWordAtCell($selectedRow, $selectedCol, $selectedDirection);
         
         // Sort words by grid number (which follows position order)
@@ -416,9 +430,24 @@
           }
         }
         
-        // If no next word found, wrap to first word
-        if (!nextWord && wordsInDirection.length > 0) {
-          nextWord = wordsInDirection[0];
+        // If no next word found, switch direction and go to first word in opposite direction
+        if (!nextWord) {
+          const oppositeDirection = $selectedDirection === 'across' ? 'down' : 'across';
+          const wordsInOppositeDirection = $words
+            .filter(w => w.direction === oppositeDirection)
+            .sort((a, b) => {
+              if (a.number !== b.number) return a.number - b.number;
+              if (a.startRow !== b.startRow) return a.startRow - b.startRow;
+              return a.startCol - b.startCol;
+            });
+          
+          if (wordsInOppositeDirection.length > 0) {
+            nextWord = wordsInOppositeDirection[0];
+            selectedDirection.set(oppositeDirection);
+          } else if (wordsInDirection.length > 0) {
+            // Fallback: wrap to first word in same direction if no words in opposite direction
+            nextWord = wordsInDirection[0];
+          }
         }
         
         // Move to the start of the next word

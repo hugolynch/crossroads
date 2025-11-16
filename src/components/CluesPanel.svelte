@@ -22,6 +22,9 @@
     if (a.startRow !== b.startRow) return a.startRow - b.startRow;
     return a.startCol - b.startCol;
   });
+  
+  // Combine all words for tabbing order: all across words first, then all down words
+  $: allClueWords = [...acrossWords, ...downWords];
 
   function handleClearClues() {
     if (!confirm('Are you sure you want to clear all clues?')) {
@@ -65,6 +68,59 @@
     selectedCol.set(word.startCol);
     selectedDirection.set(word.direction);
   }
+
+  function handleClueInputKeyDown(event: KeyboardEvent, currentWord: import('../lib/types').Word, allWords: import('../lib/types').Word[]) {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      
+      // Find current word index
+      const currentIndex = allWords.findIndex(w => w.id === currentWord.id);
+      
+      if (event.shiftKey) {
+        // Shift+Tab: go to previous clue
+        if (currentIndex > 0) {
+          const prevWord = allWords[currentIndex - 1];
+          // Focus the previous input
+          setTimeout(() => {
+            const prevInput = document.querySelector(`input[data-word-id="${prevWord.id}"]`) as HTMLInputElement;
+            if (prevInput) {
+              prevInput.focus();
+            }
+          }, 0);
+        } else {
+          // Loop to last clue
+          const lastWord = allWords[allWords.length - 1];
+          setTimeout(() => {
+            const lastInput = document.querySelector(`input[data-word-id="${lastWord.id}"]`) as HTMLInputElement;
+            if (lastInput) {
+              lastInput.focus();
+            }
+          }, 0);
+        }
+      } else {
+        // Tab: go to next clue
+        if (currentIndex < allWords.length - 1) {
+          const nextWord = allWords[currentIndex + 1];
+          // Focus the next input
+          setTimeout(() => {
+            const nextInput = document.querySelector(`input[data-word-id="${nextWord.id}"]`) as HTMLInputElement;
+            if (nextInput) {
+              nextInput.focus();
+            }
+          }, 0);
+        } else {
+          // Loop to first clue
+          const firstWord = allWords[0];
+          setTimeout(() => {
+            const firstInput = document.querySelector(`input[data-word-id="${firstWord.id}"]`) as HTMLInputElement;
+            if (firstInput) {
+              firstInput.focus();
+            }
+          }, 0);
+        }
+      }
+    }
+  }
 </script>
 
 <div class="clues-panel">
@@ -90,8 +146,10 @@
                   class="clue-input"
                   placeholder="Enter clue..."
                   value={getClueText(word.id)}
+                  data-word-id={word.id}
                   on:input={(e) => updateClue(word.id, e.currentTarget.value)}
                   on:focus={() => handleClueClick(word)}
+                  on:keydown={(e) => handleClueInputKeyDown(e, word, allClueWords)}
                   on:click={(e) => e.stopPropagation()}
                 />
               </div>
@@ -115,8 +173,10 @@
                   class="clue-input"
                   placeholder="Enter clue..."
                   value={getClueText(word.id)}
+                  data-word-id={word.id}
                   on:input={(e) => updateClue(word.id, e.currentTarget.value)}
                   on:focus={() => handleClueClick(word)}
+                  on:keydown={(e) => handleClueInputKeyDown(e, word, allClueWords)}
                   on:click={(e) => e.stopPropagation()}
                 />
               </div>
