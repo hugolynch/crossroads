@@ -3,12 +3,20 @@
   import MetadataPanel from './MetadataPanel.svelte';
   import StatsPanel from './StatsPanel.svelte';
   import HelpPanel from './HelpPanel.svelte';
+  import FillPanel from './FillPanel.svelte';
 
-  let activeTab: 'clues' | 'metadata' | 'stats' | 'help' = 'clues';
+  let activeTab: 'fill' | 'clues' | 'metadata' | 'stats' | 'help' = 'clues';
 </script>
 
 <div class="right-panel">
   <div class="tabs">
+    <button
+      class="tab"
+      class:active={activeTab === 'fill'}
+      on:click={() => activeTab = 'fill'}
+    >
+      Fill
+    </button>
     <button
       class="tab"
       class:active={activeTab === 'clues'}
@@ -40,7 +48,9 @@
   </div>
 
   <div class="tab-content">
-    {#if activeTab === 'clues'}
+    {#if activeTab === 'fill'}
+      <FillPanel />
+    {:else if activeTab === 'clues'}
       <CluesPanel />
     {:else if activeTab === 'stats'}
       <StatsPanel />
