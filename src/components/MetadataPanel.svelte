@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { puzzleTitle, notes, collaborators, grid, rows, cols, clues, symmetry, selectedRow, selectedCol, currentPuzzleId } from '../lib/store';
+  import { puzzleTitle, notes, collaborators, grid, rows, cols, clues, symmetry, selectedRow, selectedCol, currentPuzzleId, words } from '../lib/store';
   import type { Collaborator, CollaboratorRole } from '../lib/store';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { createEmptyGrid } from '../lib/gridUtils';
   import type { Cell } from '../lib/types';
+  import { exportToPuz } from '../lib/puzExport';
 
   const STORAGE_KEY = 'crossword-puzzles';
 
@@ -229,6 +230,48 @@
     }
   }
 
+  function handleExportPuz() {
+    try {
+      const $grid = get(grid);
+      const $rows = get(rows);
+      const $cols = get(cols);
+      const $clues = get(clues);
+      const $puzzleTitle = get(puzzleTitle);
+      const $notes = get(notes);
+      const $collaborators = get(collaborators);
+      
+      // Get author from collaborators
+      const constructor = $collaborators.find(c => c.role === 'Constructor');
+      const author = constructor?.name || '';
+      
+      // Generate .puz file
+      const puzData = exportToPuz({
+        grid: $grid,
+        rows: $rows,
+        cols: $cols,
+        clues: $clues,
+        puzzleTitle: $puzzleTitle,
+        author: author,
+        copyright: '',
+        notes: $notes
+      });
+      
+      // Create blob and download
+      const blob = new Blob([puzData as BlobPart], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const filename = ($puzzleTitle || 'crossword').replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.puz';
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Error exporting puzzle: ' + error);
+    }
+  }
+
   function handleTitleChange(event: Event) {
     const target = event.target as HTMLInputElement;
     puzzleTitle.set(target.value);
@@ -349,6 +392,12 @@
         Save As
       </button>
     </div>
+  </div>
+
+  <div class="control-group">
+    <button class="action-button export-button" on:click={handleExportPuz}>
+      Export
+    </button>
   </div>
 
   <div class="control-group">
@@ -749,6 +798,25 @@
   }
 
   .save-as-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
+  }
+
+  .export-button {
+    background: var(--carbon-white);
+    color: var(--carbon-gray-100);
+  }
+
+  .export-button:hover {
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .export-button:active {
+    background: var(--carbon-gray-20);
+  }
+
+  .export-button:focus-visible {
     outline: 2px solid var(--carbon-blue-60);
     outline-offset: -2px;
   }
