@@ -2,6 +2,10 @@
   import ControlsPanel from './components/ControlsPanel.svelte';
   import Grid from './components/Grid.svelte';
   import RightPanel from './components/RightPanel.svelte';
+  import { onMount } from 'svelte';
+  import { grid, rows, cols, clues, puzzleTitle, notes, collaborators, symmetry, selectedRow, selectedCol, selectedDirection } from './lib/store';
+  import { loadAutosave, saveAutosave } from './lib/autosave';
+  import { get } from 'svelte/store';
 
   let leftPanelCollapsed = false;
   let rightPanelCollapsed = false;
@@ -13,6 +17,88 @@
   let resizeStartX = 0;
   let resizeStartLeftWidth = 0;
   let resizeStartRightWidth = 0;
+
+  let autosaveTimeout: ReturnType<typeof setTimeout> | null = null;
+  let isInitialLoad = true;
+
+  // Load autosave on mount
+  onMount(() => {
+    const autosaveData = loadAutosave();
+    if (autosaveData) {
+      // Load the autosaved state
+      // Set dimensions first (this will trigger grid updates, but we'll overwrite with the saved grid)
+      rows.set(autosaveData.rows);
+      cols.set(autosaveData.cols);
+      // Set grid after dimensions to ensure correct size
+      // Use setTimeout to ensure dimension subscriptions have run
+      setTimeout(() => {
+        grid.set(autosaveData.grid);
+        clues.set(new Map(autosaveData.clues));
+        puzzleTitle.set(autosaveData.puzzleTitle || '');
+        notes.set(autosaveData.notes || '');
+        collaborators.set(autosaveData.collaborators || []);
+        symmetry.set(autosaveData.symmetry as any);
+        selectedRow.set(autosaveData.selectedRow || 0);
+        selectedCol.set(autosaveData.selectedCol || 0);
+        selectedDirection.set(autosaveData.selectedDirection || 'across');
+        isInitialLoad = false;
+        setupAutosave();
+      }, 0);
+    } else {
+      isInitialLoad = false;
+      setupAutosave();
+    }
+
+    // Also save on page unload
+    window.addEventListener('beforeunload', performAutosave);
+
+    return () => {
+      if (autosaveTimeout) {
+        clearTimeout(autosaveTimeout);
+      }
+      window.removeEventListener('beforeunload', performAutosave);
+    };
+  });
+
+  function setupAutosave() {
+    // Set up auto-save subscriptions with debouncing
+    const storesToWatch = [grid, rows, cols, clues, puzzleTitle, notes, collaborators, symmetry, selectedRow, selectedCol, selectedDirection];
+    
+    storesToWatch.forEach(store => {
+      store.subscribe(() => {
+        if (isInitialLoad) return; // Don't save during initial load
+        
+        // Debounce autosave to avoid excessive writes
+        if (autosaveTimeout) {
+          clearTimeout(autosaveTimeout);
+        }
+        autosaveTimeout = setTimeout(() => {
+          performAutosave();
+        }, 500); // Wait 500ms after last change before saving
+      });
+    });
+  }
+
+  function performAutosave() {
+    try {
+      saveAutosave({
+        grid: get(grid),
+        rows: get(rows),
+        cols: get(cols),
+        clues: Array.from(get(clues).entries()),
+        puzzleTitle: get(puzzleTitle),
+        notes: get(notes),
+        collaborators: get(collaborators),
+        symmetry: get(symmetry),
+        selectedRow: get(selectedRow),
+        selectedCol: get(selectedCol),
+        selectedDirection: get(selectedDirection)
+      });
+    } catch (error) {
+      // Silently fail - autosave shouldn't interrupt user workflow
+      console.warn('Autosave failed:', error);
+    }
+  }
 
   function toggleLeftPanel() {
     leftPanelCollapsed = !leftPanelCollapsed;
