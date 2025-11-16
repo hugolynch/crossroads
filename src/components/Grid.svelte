@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { grid, selectedRow, selectedCol, selectedDirection, words, potentialNumbers, symmetry, rows, cols, highlightShortWords } from '../lib/store';
+  import { grid, selectedRow, selectedCol, selectedDirection, words, potentialNumbers, symmetry, rows, cols, highlightShortWords, highlightUncheckedCells } from '../lib/store';
   import { getWordNumber, getWordCells } from '../lib/gridUtils';
   import type { SymmetryType } from '../lib/store';
   import type { Word, Cell } from '../lib/types';
@@ -50,8 +50,8 @@
     }
   }
 
-  // Check if a cell is part of a range less than 3 cells long in either direction
-  // This checks for sequences of 1 or 2 cells (not just words)
+  // Check if a cell is part of a 2-letter word/range
+  // This checks for sequences of exactly 2 cells (not 1-letter words)
   function isCellInShortRange(row: number, col: number, wordsList: Word[]): boolean {
     const $grid = get(grid);
     const cell = $grid[row]?.[col];
@@ -59,9 +59,9 @@
     // Black cells are never part of ranges
     if (cell?.type === 'black') return false;
     
-    // Check if this cell is part of any word/range less than 3 long
+    // Check if this cell is part of any word of exactly 2 letters
     const inShortWord = wordsList.some(word => {
-      if (word.length >= 3) return false;
+      if (word.length !== 2) return false;
       
       // Check if this cell is part of this word
       if (word.direction === 'across') {
@@ -73,7 +73,7 @@
     
     if (inShortWord) return true;
     
-    // Also check for isolated cells or pairs that aren't part of detected words
+    // Also check for pairs that aren't part of detected words
     // Check horizontal range
     let horizontalLength = 1;
     // Check left
@@ -104,8 +104,65 @@
       verticalLength++;
     }
     
-    // Return true if either direction has a range less than 3
-    return horizontalLength < 3 || verticalLength < 3;
+    // Return true if either direction has a range of exactly 2
+    return horizontalLength === 2 || verticalLength === 2;
+  }
+
+  // Check if a cell is part of a 1-letter word/range (unchecked entry)
+  function isCellInUncheckedRange(row: number, col: number, wordsList: Word[]): boolean {
+    const $grid = get(grid);
+    const cell = $grid[row]?.[col];
+    
+    // Black cells are never part of ranges
+    if (cell?.type === 'black') return false;
+    
+    // Check if this cell is part of any word of exactly 1 letter
+    const inUncheckedWord = wordsList.some(word => {
+      if (word.length !== 1) return false;
+      
+      // Check if this cell is part of this word
+      if (word.direction === 'across') {
+        return word.startRow === row && col >= word.startCol && col < word.startCol + word.length;
+      } else {
+        return word.startCol === col && row >= word.startRow && row < word.startRow + word.length;
+      }
+    });
+    
+    if (inUncheckedWord) return true;
+    
+    // Also check for isolated cells that aren't part of detected words
+    // Check horizontal range
+    let horizontalLength = 1;
+    // Check left
+    for (let c = col - 1; c >= 0; c--) {
+      const checkCell = $grid[row]?.[c];
+      if (checkCell?.type === 'black') break;
+      horizontalLength++;
+    }
+    // Check right
+    for (let c = col + 1; c < $grid[row]?.length; c++) {
+      const checkCell = $grid[row]?.[c];
+      if (checkCell?.type === 'black') break;
+      horizontalLength++;
+    }
+    
+    // Check vertical range
+    let verticalLength = 1;
+    // Check up
+    for (let r = row - 1; r >= 0; r--) {
+      const checkCell = $grid[r]?.[col];
+      if (checkCell?.type === 'black') break;
+      verticalLength++;
+    }
+    // Check down
+    for (let r = row + 1; r < $grid.length; r++) {
+      const checkCell = $grid[r]?.[col];
+      if (checkCell?.type === 'black') break;
+      verticalLength++;
+    }
+    
+    // Return true if either direction has a range of exactly 1
+    return horizontalLength === 1 || verticalLength === 1;
   }
 
   function handleCellClick(row: number, col: number, event: MouseEvent) {
@@ -636,11 +693,13 @@
         {@const isSelected = rowIndex === $selectedRow && colIndex === $selectedCol}
         {@const inCurrentWord = isCellInCurrentWord(rowIndex, colIndex, $selectedRow, $selectedCol, $selectedDirection)}
         {@const inShortWord = $highlightShortWords && isCellInShortRange(rowIndex, colIndex, $words)}
+        {@const inUncheckedCell = $highlightUncheckedCells && isCellInUncheckedRange(rowIndex, colIndex, $words)}
         <div
           class="cell"
           class:selected={isSelected}
           class:in-word={inCurrentWord}
           class:short-word={inShortWord}
+          class:unchecked={inUncheckedCell}
           class:black={cell.type === 'black'}
           class:letter={cell.type === 'letter'}
           on:click={(e) => handleCellClick(rowIndex, colIndex, e)}
@@ -718,6 +777,22 @@
 
   .cell.in-word.short-word {
     background: #E6D6E7;
+  }
+
+  .cell.unchecked {
+    background: #FDB9CC;
+  }
+
+  .cell.in-word.unchecked {
+    background: #E4B9D3;
+  }
+
+  .cell.selected.unchecked {
+    background: #C3B9DC !important;
+  }
+
+  .cell.selected.in-word.unchecked {
+    background: #C3B9DC !important;
   }
 
   .cell.black {

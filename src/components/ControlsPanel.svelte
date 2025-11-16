@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { rows, cols, symmetry, grid, highlightShortWords, clues, puzzleTitle, notes, collaborators, selectedRow, selectedCol, currentPuzzleId } from '../lib/store';
+  import { rows, cols, symmetry, grid, highlightShortWords, highlightUncheckedCells, clues, puzzleTitle, notes, collaborators, selectedRow, selectedCol, currentPuzzleId } from '../lib/store';
   import { createEmptyGrid } from '../lib/gridUtils';
   import type { SymmetryType } from '../lib/store';
   import { get } from 'svelte/store';
@@ -56,6 +56,11 @@
   function handleHighlightShortWordsChange(event: Event) {
     const target = event.target as HTMLInputElement;
     highlightShortWords.set(target.checked);
+  }
+
+  function handleHighlightUncheckedCellsChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    highlightUncheckedCells.set(target.checked);
   }
 
   function handleClearGrid() {
@@ -190,7 +195,17 @@
         checked={$highlightShortWords}
         on:change={handleHighlightShortWordsChange}
       />
-      <span>Highlight unfillable cells</span>
+      <span>Highlight 2-letter entries</span>
+    </label>
+  </div>
+  <div class="control-group">
+    <label class="checkbox-label">
+      <input
+        type="checkbox"
+        checked={$highlightUncheckedCells}
+        on:change={handleHighlightUncheckedCellsChange}
+      />
+      <span>Highlight unchecked entries</span>
     </label>
   </div>
   <div class="control-group">
@@ -262,13 +277,13 @@
 
   .number-controls {
     position: absolute;
-    right: var(--carbon-spacing-03);
+    right: 0;
     top: 0;
     height: 40px;
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: var(--carbon-spacing-05);
+    gap: 0;
     pointer-events: none;
   }
 
@@ -284,8 +299,8 @@
   }
 
   .number-button {
-    width: 16px;
-    height: 16px;
+    width: 38px;
+    height: 100%;
     background: transparent;
     border: none;
     color: var(--carbon-gray-70);
@@ -307,6 +322,7 @@
   .number-button:hover {
     background: transparent;
     color: var(--carbon-gray-100);
+    background: var(--carbon-gray-20);
   }
 
   .number-button:active {

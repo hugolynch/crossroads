@@ -545,7 +545,7 @@
 
   .collaborator-name {
     flex: 1;
-    min-width: 120px;
+    min-width: 0;
     height: 40px;
     padding: 0 var(--carbon-spacing-03);
     font-size: 14px;
@@ -571,7 +571,8 @@
   }
 
   .collaborator-role {
-    width: 120px;
+    flex: 1;
+    min-width: 0;
     height: 40px;
     padding: 0 var(--carbon-spacing-03);
     padding-right: calc(var(--carbon-spacing-03) + 20px);
