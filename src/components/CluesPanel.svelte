@@ -112,29 +112,50 @@
 
 <style>
   .clues-panel {
-    padding: 20px;
+    padding: var(--carbon-spacing-05);
     display: flex;
     flex-direction: column;
+    background: var(--carbon-white);
   }
 
   .tabs {
     display: flex;
-    border-bottom: 1px solid #8C8E98;
-    margin-bottom: 15px;
+    border-bottom: 1px solid var(--carbon-gray-20);
+    margin-bottom: var(--carbon-spacing-05);
   }
 
   .tab {
     flex: 1;
-    padding: 10px;
+    padding: var(--carbon-spacing-04);
     border: none;
     background: transparent;
     cursor: pointer;
     border-bottom: 2px solid transparent;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--carbon-gray-70);
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+  }
+
+  .tab:hover {
+    background: var(--carbon-gray-10);
+    color: var(--carbon-gray-100);
+  }
+
+  .tab:active {
+    background: var(--carbon-gray-20);
+  }
+
+  .tab:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .tab.active {
-    border-bottom-color: #6D6E78;
-    font-weight: bold;
+    border-bottom-color: var(--carbon-blue-60);
+    color: var(--carbon-gray-100);
+    font-weight: 600;
   }
 
   .clues-content {
@@ -145,40 +166,68 @@
   .clues-list {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: var(--carbon-spacing-05);
   }
 
   .clue-item {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: var(--carbon-spacing-02);
   }
 
   .clue-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--carbon-spacing-02);
   }
 
   .clue-number {
-    font-weight: bold;
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
+    font-size: 14px;
   }
 
   .word-display {
-    font-family: monospace;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
     font-size: 14px;
-    color: #6D6E78;
+    color: var(--carbon-gray-70);
   }
 
   .clue-input {
     width: 100%;
-    padding: 5px;
+    height: 40px;
+    padding: 0 var(--carbon-spacing-03);
     font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
+    background: var(--carbon-gray-10);
+    border: none;
+    border-bottom: 1px solid var(--carbon-gray-50);
+    border-radius: 0;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  .clue-input:focus {
+    border-bottom-color: var(--carbon-blue-60);
+    outline: none;
+  }
+
+  .clue-input:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
+  }
+
+  .clue-input::placeholder {
+    color: var(--carbon-gray-70);
   }
 
   .no-clues {
-    color: #8C8E98;
+    color: var(--carbon-gray-70);
     font-style: italic;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
   }
 </style>
 

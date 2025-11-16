@@ -1,9 +1,30 @@
+/* Carbon Design System Tokens */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Colors */
+  --carbon-gray-10: #f4f4f4;
+  --carbon-gray-20: #e0e0e0;
+  --carbon-gray-30: #c6c6c6;
+  --carbon-gray-50: #8d8d8d;
+  --carbon-gray-70: #525252;
+  --carbon-gray-100: #161616;
+  --carbon-white: #ffffff;
+  --carbon-blue-60: #0f62fe;
+  --carbon-blue-70: #0043ce;
+  
+  /* Typography */
+  font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #2E2F38;
-  background-color: #FFFFFF;
+  color: var(--carbon-gray-100);
+  background-color: var(--carbon-white);
+  
+  /* Spacing */
+  --carbon-spacing-01: 0.25rem; /* 4px */
+  --carbon-spacing-02: 0.5rem;  /* 8px */
+  --carbon-spacing-03: 0.75rem; /* 12px */
+  --carbon-spacing-04: 1rem;    /* 16px */
+  --carbon-spacing-05: 1.25rem;  /* 20px */
+  --carbon-spacing-06: 1.5rem;  /* 24px */
 }
 
 * {

@@ -75,59 +75,72 @@
 
 <style>
   .help-panel {
-    padding: 20px;
+    padding: var(--carbon-spacing-05);
+    background: var(--carbon-white);
   }
 
   .help-panel h2 {
     margin-top: 0;
-    font-size: 18px;
+    margin-bottom: var(--carbon-spacing-05);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
   }
 
   .section {
-    margin-bottom: 30px;
+    margin-bottom: var(--carbon-spacing-06);
   }
 
   .section h3 {
-    font-size: 16px;
+    font-size: 14px;
+    font-weight: 600;
     margin-top: 0;
-    margin-bottom: 15px;
-    color: #2E2F38;
+    margin-bottom: var(--carbon-spacing-04);
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
   }
 
   .controls-list {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: var(--carbon-spacing-05);
   }
 
   .control-item {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: var(--carbon-spacing-01);
+
   }
 
   .control-keys {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--carbon-spacing-02);
     flex-wrap: wrap;
   }
 
   kbd {
-    background: #F2F3FB;
-    border: 1px solid #C9CAD6;
-    border-radius: 3px;
-    padding: 4px 8px;
-    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--carbon-gray-10);
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
+    padding: var(--carbon-spacing-01) var(--carbon-spacing-02);
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
     font-size: 12px;
     font-weight: 600;
-    color: #2E2F38;
+    color: var(--carbon-gray-100);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    letter-spacing: 0.16px;
+    border-radius: 4px;
+    min-width: 28px;
+    text-align: center;
   }
 
   .control-description {
-    color: #6D6E78;
+    color: var(--carbon-gray-70);
     font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
     line-height: 1.5;
   }
 </style>

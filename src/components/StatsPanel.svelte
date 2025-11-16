@@ -89,63 +89,83 @@
 
 <style>
   .stats-panel {
-    padding: 20px;
+    padding: var(--carbon-spacing-05);
+    background: var(--carbon-white);
   }
 
   .stats-panel h2 {
     margin-top: 0;
-    font-size: 18px;
+    margin-bottom: var(--carbon-spacing-05);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
   }
 
   .stats-panel h3 {
     font-size: 14px;
+    font-weight: 600;
     margin-top: 0;
-    margin-bottom: 10px;
+    margin-bottom: var(--carbon-spacing-04);
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
   }
 
   .stat-group {
-    margin-bottom: 20px;
+    margin-bottom: var(--carbon-spacing-05);
   }
 
   .stat-item {
     display: flex;
     justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #E3E5EF;
+    padding: var(--carbon-spacing-02) 0;
+    border-bottom: 1px solid var(--carbon-gray-20);
   }
 
   .stat-label {
-    font-weight: bold;
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
+    font-size: 14px;
   }
 
   .stat-value {
-    color: #6D6E78;
+    color: var(--carbon-gray-70);
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
   }
 
   .length-distribution {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: var(--carbon-spacing-02);
   }
 
   .length-item {
     display: flex;
     justify-content: space-between;
-    padding: 5px 0;
+    padding: var(--carbon-spacing-02) 0;
   }
 
   .length-label {
-    color: #6D6E78;
+    color: var(--carbon-gray-70);
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
   }
 
   .length-count {
-    font-weight: bold;
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
+    font-size: 14px;
   }
 
   .no-data {
-    color: #8C8E98;
+    color: var(--carbon-gray-70);
     font-style: italic;
-    margin: 10px 0;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    margin: var(--carbon-spacing-03) 0;
+    font-size: 14px;
   }
 </style>
 

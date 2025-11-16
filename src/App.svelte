@@ -82,7 +82,7 @@
     class="collapse-button collapse-left" 
     class:collapsed={leftPanelCollapsed}
     class:resizing={isResizingLeft}
-    style="left: {leftPanelCollapsed ? 10 : leftPanelWidth + 10}px"
+    style="left: {leftPanelCollapsed ? 16 : leftPanelWidth + 16}px"
     on:click={toggleLeftPanel}
   >
     {leftPanelCollapsed ? '▶' : '◀'}
@@ -119,7 +119,7 @@
     class="collapse-button collapse-right" 
     class:collapsed={rightPanelCollapsed}
     class:resizing={isResizingRight}
-    style="right: {rightPanelCollapsed ? 10 : rightPanelWidth + 10}px"
+    style="right: {rightPanelCollapsed ? 16 : rightPanelWidth +16}px"
     on:click={toggleRightPanel}
   >
     {rightPanelCollapsed ? '◀' : '▶'}
@@ -145,11 +145,11 @@
   }
 
   .left-panel {
-    border-right: 1px solid #FFFFFF;
+    background: var(--carbon-gray-10);
+    border: none;
     overflow-y: auto;
     position: relative;
     flex-shrink: 0;
-    box-shadow: 0 0 4px 0px rgba(0, 0, 0, 0.5);
   }
 
   .left-panel:not(.collapsed):not(.resizing) {
@@ -162,12 +162,11 @@
   }
 
   .right-panel {
-    border-left: 1px solid #FFFFFF;
+    background: var(--carbon-gray-10);
+    border: none;
     overflow-y: auto;
     position: relative;
     flex-shrink: 0;
-    box-shadow: 0 0 4px 0px rgba(0, 0, 0, 0.5);
-
   }
 
   .right-panel:not(.collapsed):not(.resizing) {
@@ -180,38 +179,67 @@
   }
 
   .resize-handle {
-    width: 3px;
-    background: #8C8E98;
+    width: 1px;
+    background: var(--carbon-gray-20);
     cursor: col-resize;
     flex-shrink: 0;
-    transition: background 0.2s;
+    transition: background 0.15s;
+    position: relative;
+  }
+
+  .resize-handle::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    right: -3px;
+    top: 0;
+    bottom: 0;
+    background: transparent;
+    cursor: col-resize;
   }
 
   .resize-handle:hover {
-    background: #6D6E78;
+    background: var(--carbon-blue-60);
   }
 
   .resize-handle-left {
-    margin-left: -2px;
+    margin-left: 0;
   }
 
   .resize-handle-right {
-    margin-right: -2px;
+    margin-right: 0;
   }
 
   .collapse-button {
-    background: #F2F3FB;
-    border: 1px solid #8C8E98;
-    border-radius: 3px;
-    padding: 5px 8px;
+    background: var(--carbon-white);
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
+    padding: var(--carbon-spacing-02) var(--carbon-spacing-03);
     cursor: pointer;
     font-size: 12px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
     z-index: 10;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .collapse-button:hover {
+    background: var(--carbon-gray-20);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .collapse-button:active {
+    background: var(--carbon-gray-30);
+  }
+
+  .collapse-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .collapse-left {
     position: absolute;
-    top: 10px;
+    top: var(--carbon-spacing-04);
     z-index: 100;
   }
 
@@ -221,7 +249,7 @@
 
   .collapse-right {
     position: absolute;
-    top: 10px;
+    top: var(--carbon-spacing-04);
     z-index: 100;
   }
 
@@ -235,14 +263,15 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: var(--carbon-spacing-05);
     overflow: auto;
     min-width: 0;
     min-height: 0;
+    background: var(--carbon-gray-10);
   }
 
   .logo-container {
-    margin-bottom: 20px;
+    margin-bottom: var(--carbon-spacing-05);
     display: flex;
     justify-content: center;
   }

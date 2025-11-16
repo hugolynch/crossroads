@@ -290,13 +290,17 @@
     <label>Collaborators:</label>
     <div class="collaborators-list">
       {#each $collaborators as collaborator (collaborator.id)}
+        {@const collaboratorId = collaborator.id}
         <div class="collaborator-item">
           <input
             type="text"
             class="collaborator-name"
             placeholder="Name..."
             value={collaborator.name}
-            on:input={(e) => updateCollaboratorName(collaborator.id, e.currentTarget.value)}
+            on:input={(e) => {
+              const target = e.target as HTMLInputElement;
+              updateCollaboratorName(collaboratorId, target.value);
+            }}
           />
           <select
             class="collaborator-role"
@@ -407,21 +411,23 @@
 
 <style>
   .metadata-panel {
-    padding: 20px;
+    padding: var(--carbon-spacing-05);
     position: relative;
+    background: var(--carbon-white);
   }
 
   .success-alert {
     position: fixed;
-    top: 20px;
+    top: var(--carbon-spacing-05);
     left: 50%;
     transform: translateX(-50%);
-    background: #F2F3FB;
-    color: #2E2F38;
-    border: 1px solid #8C8E98;
-    border-radius: 3px;
-    padding: 12px 20px;
+    background: var(--carbon-white);
+    color: var(--carbon-gray-100);
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
+    padding: var(--carbon-spacing-03) var(--carbon-spacing-05);
     font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     animation: slideIn 0.3s ease-out;
@@ -440,220 +446,415 @@
 
   .metadata-panel h2 {
     margin-top: 0;
-    font-size: 18px;
+    margin-bottom: var(--carbon-spacing-05);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
   }
 
   .control-group {
-    margin-bottom: 15px;
+    margin-bottom: var(--carbon-spacing-05);
   }
 
   .control-group label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
+    margin-bottom: var(--carbon-spacing-02);
+    font-weight: 600;
+    font-size: 12px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
+    letter-spacing: 0.16px;
   }
 
   .control-group input,
-  .control-group textarea {
+  .control-group textarea,
+  .control-group select {
     width: 100%;
-    padding: 5px;
     font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
+    background: var(--carbon-gray-10);
+    border: none;
+    border-bottom: 1px solid var(--carbon-gray-50);
+    border-radius: 0;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  .control-group input[type="text"],
+  .control-group input[type="number"] {
+    height: 40px;
+    padding: 0 var(--carbon-spacing-03);
+  }
+
+  .control-group select {
+    height: 40px;
+    padding: 0 var(--carbon-spacing-03);
+    padding-right: calc(var(--carbon-spacing-03) + 20px);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 6L8 9L11 6' stroke='%23525252' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--carbon-spacing-03) center;
+    background-size: 16px 16px;
+  }
+
+  .control-group select:focus {
+    background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 6L8 9L11 6' stroke='%230f62fe' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+
+  .control-group textarea {
+    min-height: 80px;
+    padding: var(--carbon-spacing-03);
+    resize: vertical;
+  }
+
+  .control-group input:focus,
+  .control-group textarea:focus,
+  .control-group select:focus {
+    border-bottom-color: var(--carbon-blue-60);
+    outline: none;
+  }
+
+  .control-group input:focus-visible,
+  .control-group textarea:focus-visible,
+  .control-group select:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .notes-input {
     resize: vertical;
-    font-family: inherit;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
   }
 
   .collaborators-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--carbon-spacing-02);
   }
 
   .collaborator-item {
     display: flex;
-    gap: 5px;
+    gap: var(--carbon-spacing-02);
     align-items: center;
   }
 
   .collaborator-name {
     flex: 1;
+    min-width: 120px;
+    height: 40px;
+    padding: 0 var(--carbon-spacing-03);
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
+    background: var(--carbon-gray-10);
+    border: none;
+    border-bottom: 1px solid var(--carbon-gray-50);
+    border-radius: 0;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  .collaborator-name:focus {
+    border-bottom-color: var(--carbon-blue-60);
+    outline: none;
+  }
+
+  .collaborator-name:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .collaborator-role {
     width: 120px;
-    padding: 5px;
+    height: 40px;
+    padding: 0 var(--carbon-spacing-03);
+    padding-right: calc(var(--carbon-spacing-03) + 20px);
     font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
+    background: var(--carbon-gray-10);
+    border: none;
+    border-bottom: 1px solid var(--carbon-gray-50);
+    border-radius: 0;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 6L8 9L11 6' stroke='%23525252' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--carbon-spacing-03) center;
+    background-size: 16px 16px;
+  }
+
+  .collaborator-role:focus {
+    border-bottom-color: var(--carbon-blue-60);
+    outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 6L8 9L11 6' stroke='%230f62fe' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+
+  .collaborator-role:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .remove-button {
-    background: #F2F3FB;
-    color: #2E2F38;
-    border: 1px solid #8C8E98;
-    border-radius: 3px;
-    width: auto;
-    min-width: 24px;
-    height: auto;
-    padding: 5px;
+    background: var(--carbon-white);
+    color: var(--carbon-gray-100);
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    padding: 0;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 20px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-weight: bold;
+    font-weight: 400;
     line-height: 1;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
   }
 
   .remove-button:hover {
-    background: #E3E5EF;
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+    color: var(--carbon-gray-100);
+  }
+
+  .remove-button:active {
+    background: var(--carbon-gray-20);
+  }
+
+  .remove-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .add-button {
     width: 100%;
-    padding: 8px;
-    background: #F2F3FB;
-    border: 1px solid #8C8E98;
-    border-radius: 3px;
+    height: 40px;
+    padding: 0 var(--carbon-spacing-04);
+    background: var(--carbon-white);
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
     cursor: pointer;
     font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400;
+    color: var(--carbon-gray-100);
+    transition: background 0.2s, border-color 0.2s;
   }
 
   .add-button:hover {
-    background: #E3E5EF;
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .add-button:active {
+    background: var(--carbon-gray-20);
+  }
+
+  .add-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .control-group h3 {
-    font-size: 16px;
+    font-size: 14px;
+    font-weight: 600;
     margin-top: 0;
-    margin-bottom: 10px;
-    color: #2E2F38;
+    margin-bottom: var(--carbon-spacing-03);
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
   }
 
   .save-buttons {
     display: flex;
-    gap: 10px;
+    gap: var(--carbon-spacing-02);
     width: 100%;
   }
 
   .action-button {
     flex: 1;
-    padding: 10px;
+    height: 40px;
+    padding: 0 var(--carbon-spacing-04);
     font-size: 14px;
-    border: 1px solid #8C8E98;
-    border-radius: 3px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 400;
+    transition: background 0.2s, border-color 0.2s;
   }
 
   .save-button {
-    background: #F2F3FB;
-    color: #2E2F38;
+    background: var(--carbon-white);
+    color: var(--carbon-gray-100);
   }
 
   .save-button:hover {
-    background: #E3E5EF;
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .save-button:active {
+    background: var(--carbon-gray-20);
+  }
+
+  .save-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .save-as-button {
-    background: #F2F3FB;
-    color: #2E2F38;
+    background: var(--carbon-white);
+    color: var(--carbon-gray-100);
   }
 
   .save-as-button:hover {
-    background: #E3E5EF;
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .save-as-button:active {
+    background: var(--carbon-gray-20);
+  }
+
+  .save-as-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .info-text {
-    color: #8C8E98;
+    color: var(--carbon-gray-70);
     font-size: 12px;
     font-style: italic;
-    margin-top: 10px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    margin-top: var(--carbon-spacing-03);
   }
 
   .table-container {
     overflow-x: auto;
-    margin-top: 10px;
+    margin-top: var(--carbon-spacing-03);
   }
 
   .puzzles-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
   }
 
   .puzzles-table thead {
-    background: #F2F3FB;
-    border-bottom: 2px solid #8C8E98;
+    background: var(--carbon-gray-10);
+    border-bottom: 1px solid var(--carbon-gray-20);
   }
 
   .puzzles-table th {
-    padding: 8px 12px;
+    padding: var(--carbon-spacing-02) var(--carbon-spacing-03);
     text-align: left;
-    font-weight: bold;
-    color: #2E2F38;
+    font-weight: 600;
+    color: var(--carbon-gray-100);
     font-size: 12px;
+    letter-spacing: 0.16px;
   }
 
   .puzzles-table tbody tr {
-    border-bottom: 1px solid #E3E5EF;
+    border-bottom: 1px solid var(--carbon-gray-20);
+    transition: background 0.15s;
   }
 
   .puzzles-table tbody tr:hover {
-    background: #F2F3FB;
+    background: var(--carbon-gray-10);
+  }
+
+  .puzzles-table tbody tr:last-child {
+    border-bottom: none;
   }
 
   .puzzles-table td {
-    padding: 8px 12px;
-    color: #2E2F38;
-    font-size: 13px;
+    padding: var(--carbon-spacing-02) var(--carbon-spacing-03);
+    color: var(--carbon-gray-100);
+    font-size: 14px;
   }
 
   .puzzle-title-cell {
-    font-weight: bold;
+    font-weight: 600;
   }
 
   .puzzle-constructor-cell {
-    color: #6D6E78;
+    color: var(--carbon-gray-70);
   }
 
   .puzzle-date-cell {
-    color: #8C8E98;
+    color: var(--carbon-gray-70);
     font-size: 12px;
   }
 
   .puzzle-actions-cell {
     display: flex;
-    gap: 8px;
+    gap: var(--carbon-spacing-02);
   }
 
   .table-button {
-    padding: 6px 12px;
-    border: 1px solid #8C8E98;
-    border-radius: 3px;
+    height: 32px;
+    padding: 0 var(--carbon-spacing-03);
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
     cursor: pointer;
     font-size: 12px;
-    font-weight: bold;
-    transition: background 0.2s;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400;
+    transition: background 0.2s, border-color 0.2s;
   }
 
   .load-table-button {
-    background: #F2F3FB;
-    color: #2E2F38;
+    background: var(--carbon-white);
+    color: var(--carbon-gray-100);
   }
 
   .load-table-button:hover {
-    background: #E3E5EF;
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .load-table-button:active {
+    background: var(--carbon-gray-20);
+  }
+
+  .load-table-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .delete-table-button {
-    background: #F2F3FB;
-    color: #2E2F38;
+    background: var(--carbon-white);
+    color: var(--carbon-gray-100);
   }
 
   .delete-table-button:hover {
-    background: #E3E5EF;
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .delete-table-button:active {
+    background: var(--carbon-gray-20);
+  }
+
+  .delete-table-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 </style>
 
