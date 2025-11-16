@@ -100,6 +100,9 @@
   {#if !leftPanelCollapsed}
     <div 
       class="resize-handle resize-handle-left"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize left panel"
       on:mousedown={handleLeftResizeStart}
     ></div>
   {/if}
@@ -112,6 +115,9 @@
   {#if !rightPanelCollapsed}
     <div 
       class="resize-handle resize-handle-right"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize right panel"
       on:mousedown={handleRightResizeStart}
     ></div>
   {/if}

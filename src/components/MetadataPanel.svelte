@@ -287,43 +287,45 @@
   </div>
   
   <div class="control-group">
-    <label>Collaborators:</label>
-    <div class="collaborators-list">
-      {#each $collaborators as collaborator (collaborator.id)}
-        {@const collaboratorId = collaborator.id}
-        <div class="collaborator-item">
-          <input
-            type="text"
-            class="collaborator-name"
-            placeholder="Name..."
-            value={collaborator.name}
-            on:input={(e) => {
-              const target = e.target as HTMLInputElement;
-              updateCollaboratorName(collaboratorId, target.value);
-            }}
-          />
-          <select
-            class="collaborator-role"
-            value={collaborator.role}
-            on:change={(e) => updateCollaboratorRole(collaborator.id, e.currentTarget.value as CollaboratorRole)}
-          >
-            <option value="Constructor">Constructor</option>
-            <option value="Cluer">Cluer</option>
-            <option value="Editor">Editor</option>
-          </select>
-          <button
-            class="remove-button"
-            on:click={() => removeCollaborator(collaborator.id)}
-            title="Remove collaborator"
-          >
-            ×
-          </button>
-        </div>
-      {/each}
-      <button class="add-button" on:click={addCollaborator}>
-        + Add Collaborator
-      </button>
-    </div>
+    <fieldset>
+      <legend>Collaborators:</legend>
+      <div class="collaborators-list">
+        {#each $collaborators as collaborator (collaborator.id)}
+          {@const collaboratorId = collaborator.id}
+          <div class="collaborator-item">
+            <input
+              type="text"
+              class="collaborator-name"
+              placeholder="Name..."
+              value={collaborator.name}
+              on:input={(e) => {
+                const target = e.target as HTMLInputElement;
+                updateCollaboratorName(collaboratorId, target.value);
+              }}
+            />
+            <select
+              class="collaborator-role"
+              value={collaborator.role}
+              on:change={(e) => updateCollaboratorRole(collaborator.id, e.currentTarget.value as CollaboratorRole)}
+            >
+              <option value="Constructor">Constructor</option>
+              <option value="Cluer">Cluer</option>
+              <option value="Editor">Editor</option>
+            </select>
+            <button
+              class="remove-button"
+              on:click={() => removeCollaborator(collaborator.id)}
+              title="Remove collaborator"
+            >
+              ×
+            </button>
+          </div>
+        {/each}
+        <button class="add-button" on:click={addCollaborator}>
+          + Add Collaborator
+        </button>
+      </div>
+    </fieldset>
   </div>
 
   <div class="control-group">
@@ -457,6 +459,22 @@
     margin-bottom: var(--carbon-spacing-05);
   }
 
+  .control-group fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .control-group legend {
+    display: block;
+    margin-bottom: var(--carbon-spacing-02);
+    font-weight: 600;
+    font-size: 12px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
+    letter-spacing: 0.16px;
+  }
+
   .control-group label {
     display: block;
     margin-bottom: var(--carbon-spacing-02);
@@ -483,8 +501,7 @@
     box-sizing: border-box;
   }
 
-  .control-group input[type="text"],
-  .control-group input[type="number"] {
+  .control-group input[type="text"] {
     height: 40px;
     padding: 0 var(--carbon-spacing-03);
   }

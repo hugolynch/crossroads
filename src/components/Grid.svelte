@@ -679,6 +679,8 @@
   <div
     bind:this={gridElement}
     class="grid-container"
+    role="application"
+    aria-label="Crossword grid"
     tabindex="0"
     on:keydown={handleKeyDown}
     on:click={handleGridClick}
@@ -702,9 +704,16 @@
           class:unchecked={inUncheckedCell}
           class:black={cell.type === 'black'}
           class:letter={cell.type === 'letter'}
-          on:click={(e) => handleCellClick(rowIndex, colIndex, e)}
           role="button"
           tabindex="-1"
+          aria-label="Cell {rowIndex + 1}, {colIndex + 1}"
+          on:click={(e) => handleCellClick(rowIndex, colIndex, e)}
+          on:keydown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleCellClick(rowIndex, colIndex, e as any);
+            }
+          }}
         >
           {#if displayNum !== undefined}
             <span class="cell-number">{displayNum}</span>
@@ -735,6 +744,7 @@
     border: 2px solid #000000;
     gap: 1px;
     background: #000000;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
   }
 
   .grid-row {
@@ -814,8 +824,6 @@
     );
   }
 
-  .cell.letter {
-  }
 
   .cell-number {
     position: absolute;
