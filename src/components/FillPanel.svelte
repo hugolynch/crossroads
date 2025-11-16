@@ -71,38 +71,71 @@
   let maxRating: number | null = null;
   let sortBy: 'rating' | 'alphabetical' = 'rating';
   let wordListsExpanded: boolean = true;
+  
+  // Cache for unique words indexed by length for faster filtering
+  let uniqueWordsByLength: Map<number, Suggestion[]> = new Map();
+  let uniqueWordsCache: Suggestion[] = [];
+  let lastWordListsHash: string = '';
 
   async function loadWordList(list: WordList) {
     list.loading = true;
+    wordLists = wordLists; // Trigger reactivity for loading state
+    
+    // Use requestIdleCallback or setTimeout to avoid blocking
+    await new Promise(resolve => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => resolve(undefined), { timeout: 1000 });
+      } else {
+        setTimeout(() => resolve(undefined), 0);
+      }
+    });
+    
     try {
       const response = await fetch(`/${list.filename}`);
       const text = await response.text();
-      // Parse the file: skip header lines (starting with #) and empty lines
-      list.words = text
-        .split('\n')
-        .map(line => line.trim().toUpperCase())
-        .filter(line => line.length > 0 && !line.startsWith('#'))
-        .map(line => {
-          // Check if line has rating (format: WORD;RATING)
-          const parts = line.split(';');
-          if (parts.length === 2) {
-            const word = parts[0].trim();
-            const rating = parseInt(parts[1].trim(), 10);
-            return { word, rating: isNaN(rating) ? null : rating };
-          }
-          return { word: line, rating: null };
-        });
+      
+      // Process in chunks to avoid blocking
+      const lines = text.split('\n');
+      const chunkSize = 10000;
+      list.words = [];
+      
+      for (let i = 0; i < lines.length; i += chunkSize) {
+        const chunk = lines.slice(i, i + chunkSize);
+        const processed = chunk
+          .map(line => line.trim().toUpperCase())
+          .filter(line => line.length > 0 && !line.startsWith('#'))
+          .map(line => {
+            // Check if line has rating (format: WORD;RATING)
+            const parts = line.split(';');
+            if (parts.length === 2) {
+              const word = parts[0].trim();
+              const rating = parseInt(parts[1].trim(), 10);
+              return { word, rating: isNaN(rating) ? null : rating };
+            }
+            return { word: line, rating: null };
+          });
+        list.words.push(...processed);
+        
+        // Yield to browser between chunks
+        if (i + chunkSize < lines.length) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
     } catch (error) {
       console.error(`Failed to load word list ${list.name}:`, error);
       list.words = [];
     } finally {
       list.loading = false;
+      wordLists = wordLists; // Trigger reactivity after loading completes
     }
   }
 
   onMount(async () => {
-    // Load all word lists
-    await Promise.all(wordLists.map(list => loadWordList(list)));
+    // Load word lists sequentially to avoid overwhelming the browser
+    for (const list of wordLists) {
+      await loadWordList(list);
+    }
+    wordLists = wordLists; // Final reactivity trigger
   });
 
   function toggleWordList(id: string) {
@@ -118,21 +151,42 @@
     .filter(list => list.enabled)
     .flatMap(list => list.words);
   
-  // Get unique words with their highest rating (if multiple lists have same word)
-  $: uniqueWords = (() => {
-    const wordMap = new Map<string, number | null>();
-    for (const item of combinedWordList) {
-      const existing = wordMap.get(item.word);
-      if (existing === undefined || existing === null) {
-        wordMap.set(item.word, item.rating);
-      } else if (item.rating !== null && (existing === null || item.rating > existing)) {
-        wordMap.set(item.word, item.rating);
+  // Create a hash of enabled lists to detect when we need to rebuild cache
+  $: wordListsHash = wordLists
+    .filter(list => list.enabled)
+    .map(list => `${list.id}:${list.words.length}`)
+    .join('|');
+  
+  // Get unique words with their highest rating (only recalculate when word lists change)
+  $: {
+    if (wordListsHash !== lastWordListsHash) {
+      const wordMap = new Map<string, number | null>();
+      for (const item of combinedWordList) {
+        const existing = wordMap.get(item.word);
+        if (existing === undefined || existing === null) {
+          wordMap.set(item.word, item.rating);
+        } else if (item.rating !== null && (existing === null || item.rating > existing)) {
+          wordMap.set(item.word, item.rating);
+        }
       }
+      uniqueWordsCache = Array.from(wordMap.entries()).map(([word, rating]) => ({ word, rating }));
+      
+      // Index by length for faster filtering
+      uniqueWordsByLength.clear();
+      for (const item of uniqueWordsCache) {
+        const len = item.word.length;
+        if (!uniqueWordsByLength.has(len)) {
+          uniqueWordsByLength.set(len, []);
+        }
+        uniqueWordsByLength.get(len)!.push(item);
+      }
+      
+      lastWordListsHash = wordListsHash;
     }
-    return Array.from(wordMap.entries()).map(([word, rating]) => ({ word, rating }));
-  })();
+  }
 
   // Match a word against a pattern (e.g., "H_LLO" matches "HELLO")
+  // Optimized: early return on first mismatch
   function matchesPattern(word: string, pattern: string): boolean {
     if (word.length !== pattern.length) return false;
     
@@ -142,6 +196,15 @@
       }
     }
     return true;
+  }
+  
+  // Debounce helper for filter inputs
+  let debounceTimer: number | null = null;
+  function debounceFilter(callback: () => void, delay: number = 150) {
+    if (debounceTimer !== null) {
+      clearTimeout(debounceTimer);
+    }
+    debounceTimer = window.setTimeout(callback, delay);
   }
 
   // Check if rating matches filter
@@ -173,9 +236,15 @@
   })() : '';
 
   // Reactive: update suggestions when selection or grid changes
+  // Optimized: only filter words of matching length, use cached data
   $: {
-    if (currentWord && uniqueWords.length > 0 && pattern) {
-      const filtered = uniqueWords
+    if (currentWord && pattern && uniqueWordsCache.length > 0) {
+      const wordLength = pattern.length;
+      // Get words of matching length from cache (much faster than filtering all words)
+      const candidates = uniqueWordsByLength.get(wordLength) || [];
+      
+      // Filter by pattern and rating
+      const filtered = candidates
         .filter(item => matchesPattern(item.word, pattern) && matchesRating(item.rating))
         .sort((a, b) => {
           if (sortBy === 'rating') {
@@ -288,7 +357,12 @@
           value={minRating ?? ''}
           on:input={(e) => {
             const value = e.currentTarget.value;
-            minRating = value === '' ? null : parseInt(value, 10);
+            const numValue = value === '' ? null : parseInt(value, 10);
+            minRating = numValue; // Update immediately for UI responsiveness
+            debounceFilter(() => {
+              // Trigger reactivity after debounce
+              minRating = numValue;
+            });
           }}
         />
       </div>
@@ -303,7 +377,12 @@
           value={maxRating ?? ''}
           on:input={(e) => {
             const value = e.currentTarget.value;
-            maxRating = value === '' ? null : parseInt(value, 10);
+            const numValue = value === '' ? null : parseInt(value, 10);
+            maxRating = numValue; // Update immediately for UI responsiveness
+            debounceFilter(() => {
+              // Trigger reactivity after debounce
+              maxRating = numValue;
+            });
           }}
         />
       </div>
