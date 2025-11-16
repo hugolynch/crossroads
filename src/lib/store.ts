@@ -13,6 +13,7 @@ export const selectedDirection = writable<'across' | 'down'>('across');
 export const symmetry = writable<SymmetryType>('none');
 export const highlightShortWords = writable<boolean>(false);
 export const highlightUncheckedCells = writable<boolean>(false);
+export const showOneLetterClues = writable<boolean>(false);
 
 // Derived store for detected and numbered words
 export const words = derived(grid, ($grid) => {

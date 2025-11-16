@@ -1,20 +1,37 @@
 <script lang="ts">
-  import { words, clues, grid } from '../lib/store';
+  import { words, clues, grid, showOneLetterClues } from '../lib/store';
   import { getWordCells } from '../lib/gridUtils';
 
+  let clearKey = 0;
+
+  // Filter words based on showOneLetterClues setting
+  $: filteredWords = $showOneLetterClues 
+    ? $words 
+    : $words.filter(w => w.length > 1);
+
   // Sort words by their grid number, but for down words also ensure proper position ordering
-  $: acrossWords = $words.filter(w => w.direction === 'across').sort((a, b) => {
+  $: acrossWords = filteredWords.filter(w => w.direction === 'across').sort((a, b) => {
     if (a.number !== b.number) return a.number - b.number;
     // If same number, sort by position (row, then col)
     if (a.startRow !== b.startRow) return a.startRow - b.startRow;
     return a.startCol - b.startCol;
   });
-  $: downWords = $words.filter(w => w.direction === 'down').sort((a, b) => {
+  $: downWords = filteredWords.filter(w => w.direction === 'down').sort((a, b) => {
     if (a.number !== b.number) return a.number - b.number;
     // For down words, sort by start position: row first, then column
     if (a.startRow !== b.startRow) return a.startRow - b.startRow;
     return a.startCol - b.startCol;
   });
+
+  function handleClearClues() {
+    if (!confirm('Are you sure you want to clear all clues?')) {
+      return;
+    }
+    // Clear all clues - this will automatically update all input fields
+    clues.set(new Map());
+    // Force re-render of inputs by changing the key
+    clearKey++;
+  }
 
   function updateClue(wordId: string, text: string) {
     clues.update(c => {
@@ -44,13 +61,18 @@
 </script>
 
 <div class="clues-panel">
+  <div class="clues-header">
+    <button class="clear-clues-button" on:click={handleClearClues}>
+      Clear Clues
+    </button>
+  </div>
   <div class="clues-content">
     {#if acrossWords.length > 0 || downWords.length > 0}
       {#if acrossWords.length > 0}
         <div class="clues-section">
           <h3 class="section-heading">Across</h3>
           <div class="clues-list">
-            {#each acrossWords as word (word.id)}
+            {#each acrossWords as word (`across-${word.id}-${clearKey}`)}
               <div class="clue-item">
                 <div class="clue-header">
                   <span class="clue-number">{word.number}.</span>
@@ -73,7 +95,7 @@
         <div class="clues-section">
           <h3 class="section-heading">Down</h3>
           <div class="clues-list">
-            {#each downWords as word (word.id)}
+            {#each downWords as word (`down-${word.id}-${clearKey}`)}
               <div class="clue-item">
                 <div class="clue-header">
                   <span class="clue-number">{word.number}.</span>
@@ -103,6 +125,39 @@
     display: flex;
     flex-direction: column;
     background: var(--carbon-white);
+  }
+
+  .clues-header {
+    margin-bottom: var(--carbon-spacing-05);
+  }
+
+  .clear-clues-button {
+    width: 100%;
+    height: 40px;
+    padding: 0 var(--carbon-spacing-04);
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400;
+    background: var(--carbon-white);
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
+    cursor: pointer;
+    color: var(--carbon-gray-100);
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .clear-clues-button:hover {
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .clear-clues-button:active {
+    background: var(--carbon-gray-20);
+  }
+
+  .clear-clues-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .clues-content {

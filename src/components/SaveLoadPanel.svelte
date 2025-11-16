@@ -200,7 +200,6 @@
 </script>
 
 <div class="save-load-panel">
-  <h2>Save / Load</h2>
   <div class="control-group">
     <div class="save-buttons">
       <button class="action-button save-button" on:click={savePuzzle}>

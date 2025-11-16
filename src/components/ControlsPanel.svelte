@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { rows, cols, symmetry, grid, highlightShortWords, highlightUncheckedCells, clues, puzzleTitle, notes, collaborators, selectedRow, selectedCol, currentPuzzleId } from '../lib/store';
+  import { rows, cols, symmetry, grid, highlightShortWords, highlightUncheckedCells, clues, puzzleTitle, notes, collaborators, selectedRow, selectedCol, currentPuzzleId, showOneLetterClues } from '../lib/store';
   import { createEmptyGrid } from '../lib/gridUtils';
   import type { SymmetryType } from '../lib/store';
   import { get } from 'svelte/store';
@@ -61,6 +61,11 @@
   function handleHighlightUncheckedCellsChange(event: Event) {
     const target = event.target as HTMLInputElement;
     highlightUncheckedCells.set(target.checked);
+  }
+
+  function handleShowOneLetterCluesChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    showOneLetterClues.set(target.checked);
   }
 
   function handleClearGrid() {
@@ -206,6 +211,16 @@
         on:change={handleHighlightUncheckedCellsChange}
       />
       <span>Highlight unchecked entries</span>
+    </label>
+  </div>
+  <div class="control-group">
+    <label class="checkbox-label">
+      <input
+        type="checkbox"
+        checked={$showOneLetterClues}
+        on:change={handleShowOneLetterCluesChange}
+      />
+      <span>Show clues for 1-letter words</span>
     </label>
   </div>
   <div class="control-group">

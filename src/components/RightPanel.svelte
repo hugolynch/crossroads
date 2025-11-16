@@ -36,7 +36,7 @@
       class:active={activeTab === 'metadata'}
       on:click={() => activeTab = 'metadata'}
     >
-      Metadata
+      Info
     </button>
     <button
       class="tab"

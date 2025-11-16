@@ -341,7 +341,6 @@
   </div>
 
   <div class="control-group">
-    <h3>Save / Load</h3>
     <div class="save-buttons">
       <button class="action-button save-button" on:click={savePuzzle}>
         Save
@@ -353,7 +352,7 @@
   </div>
 
   <div class="control-group">
-    <h3>Saved Puzzles</h3>
+    <h2>Saved Puzzles</h2>
     {#if savedPuzzles.length === 0}
       <p class="info-text">No saved puzzles found.</p>
     {:else}
