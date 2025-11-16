@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { words, clues, grid, showOneLetterClues } from '../lib/store';
+  import { words, clues, grid, showOneLetterClues, selectedRow, selectedCol, selectedDirection } from '../lib/store';
   import { getWordCells } from '../lib/gridUtils';
 
   let clearKey = 0;
@@ -58,6 +58,13 @@
       return '_';
     }).join('');
   }
+
+  function handleClueClick(word: import('../lib/types').Word) {
+    // Select the word in the grid by setting the selection to its start position
+    selectedRow.set(word.startRow);
+    selectedCol.set(word.startCol);
+    selectedDirection.set(word.direction);
+  }
 </script>
 
 <div class="clues-panel">
@@ -84,6 +91,8 @@
                   placeholder="Enter clue..."
                   value={getClueText(word.id)}
                   on:input={(e) => updateClue(word.id, e.currentTarget.value)}
+                  on:focus={() => handleClueClick(word)}
+                  on:click={(e) => e.stopPropagation()}
                 />
               </div>
             {/each}
@@ -107,6 +116,8 @@
                   placeholder="Enter clue..."
                   value={getClueText(word.id)}
                   on:input={(e) => updateClue(word.id, e.currentTarget.value)}
+                  on:focus={() => handleClueClick(word)}
+                  on:click={(e) => e.stopPropagation()}
                 />
               </div>
             {/each}
