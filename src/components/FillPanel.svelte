@@ -18,12 +18,43 @@
     loading: boolean;
   }
 
+  // Module-level cache to persist loaded word lists across component instances
+  const wordListCache = new Map<string, WordWithRating[]>();
+
+  // Load saved word list preferences from localStorage
+  function loadWordListPreferences(): Record<string, boolean> {
+    try {
+      const saved = localStorage.getItem('crossword-word-list-preferences');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Failed to load word list preferences:', error);
+    }
+    return {};
+  }
+
+  // Save word list preferences to localStorage
+  function saveWordListPreferences() {
+    try {
+      const preferences: Record<string, boolean> = {};
+      wordLists.forEach(list => {
+        preferences[list.id] = list.enabled;
+      });
+      localStorage.setItem('crossword-word-list-preferences', JSON.stringify(preferences));
+    } catch (error) {
+      console.error('Failed to save word list preferences:', error);
+    }
+  }
+
+  const savedPreferences = loadWordListPreferences();
+  
   let wordLists: WordList[] = [
     {
       id: 'crossword-nexus',
       name: 'Crossword Nexus',
       filename: 'Crossword Nexus Word List.txt',
-      enabled: true,
+      enabled: savedPreferences['crossword-nexus'] !== undefined ? savedPreferences['crossword-nexus'] : true,
       words: [],
       loading: false
     },
@@ -31,7 +62,7 @@
       id: 'juggernaut',
       name: 'Juggernaut',
       filename: 'Juggernaut Word List.txt',
-      enabled: true,
+      enabled: savedPreferences['juggernaut'] !== undefined ? savedPreferences['juggernaut'] : true,
       words: [],
       loading: false
     },
@@ -39,7 +70,7 @@
       id: 'peter-broda',
       name: 'Peter Broda',
       filename: 'Peter Broda Wordlist.txt',
-      enabled: true,
+      enabled: savedPreferences['peter-broda'] !== undefined ? savedPreferences['peter-broda'] : true,
       words: [],
       loading: false
     },
@@ -47,7 +78,7 @@
       id: 'spread-the-wordlist',
       name: 'Spread the Wordlist',
       filename: 'Spread the Wordlist.txt',
-      enabled: true,
+      enabled: savedPreferences['spread-the-wordlist'] !== undefined ? savedPreferences['spread-the-wordlist'] : true,
       words: [],
       loading: false
     },
@@ -55,7 +86,7 @@
       id: 'collaborative',
       name: 'The Collaborative Word List Project',
       filename: 'The Collaborative Word List Project.txt',
-      enabled: true,
+      enabled: savedPreferences['collaborative'] !== undefined ? savedPreferences['collaborative'] : true,
       words: [],
       loading: false
     }
@@ -78,6 +109,20 @@
   let lastWordListsHash: string = '';
 
   async function loadWordList(list: WordList) {
+    // Check cache first - if already loaded, use cached data
+    if (wordListCache.has(list.id)) {
+      list.words = wordListCache.get(list.id)!;
+      list.loading = false;
+      wordLists = wordLists; // Trigger reactivity
+      return;
+    }
+    
+    // Skip if already loaded in component
+    if (list.words.length > 0) {
+      wordListCache.set(list.id, list.words);
+      return;
+    }
+    
     list.loading = true;
     wordLists = wordLists; // Trigger reactivity for loading state
     
@@ -121,6 +166,9 @@
           await new Promise(resolve => setTimeout(resolve, 0));
         }
       }
+      
+      // Cache the loaded words
+      wordListCache.set(list.id, list.words);
     } catch (error) {
       console.error(`Failed to load word list ${list.name}:`, error);
       list.words = [];
@@ -131,11 +179,22 @@
   }
 
   onMount(async () => {
-    // Load word lists sequentially to avoid overwhelming the browser
-    for (const list of wordLists) {
+    // Load only enabled word lists to save time and memory
+    const enabledLists = wordLists.filter(list => list.enabled);
+    const disabledLists = wordLists.filter(list => !list.enabled);
+    
+    // Load enabled lists first (sequentially)
+    for (const list of enabledLists) {
       await loadWordList(list);
     }
-    wordLists = wordLists; // Final reactivity trigger
+    
+    // Load disabled lists in background (lower priority)
+    // This allows them to be available if user enables them later
+    Promise.all(disabledLists.map(list => loadWordList(list))).then(() => {
+      wordLists = wordLists; // Trigger reactivity when background loading completes
+    });
+    
+    wordLists = wordLists; // Final reactivity trigger for enabled lists
   });
 
   function toggleWordList(id: string) {
@@ -143,6 +202,14 @@
     if (list) {
       list.enabled = !list.enabled;
       wordLists = wordLists; // Trigger reactivity
+      saveWordListPreferences(); // Save preferences
+      
+      // If enabling a list that hasn't been loaded yet, load it now
+      if (list.enabled && list.words.length === 0 && !list.loading) {
+        loadWordList(list).then(() => {
+          wordLists = wordLists; // Trigger reactivity after loading
+        });
+      }
     }
   }
 
