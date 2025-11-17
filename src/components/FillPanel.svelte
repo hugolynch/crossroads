@@ -98,6 +98,9 @@
   }
 
   let suggestions: Suggestion[] = [];
+  let allFilteredSuggestions: Suggestion[] = [];
+  let currentPage: number = 1;
+  const itemsPerPage: number = 50;
   let minRating: number | null = null;
   let maxRating: number | null = null;
   let sortBy: 'rating' | 'alphabetical' = 'rating';
@@ -302,7 +305,7 @@
     }).join('');
   })() : '';
 
-  // Reactive: update suggestions when selection or grid changes
+  // Reactive: update suggestions when selection, grid, filters, or sort changes
   // Optimized: only filter words of matching length, use cached data
   $: {
     if (currentWord && pattern && uniqueWordsCache.length > 0) {
@@ -325,11 +328,38 @@
             // Sort alphabetically
             return a.word.localeCompare(b.word);
           }
-        })
-        .slice(0, 50); // Limit to 50 suggestions
-      suggestions = filtered;
+        });
+      
+      // Store all filtered suggestions
+      allFilteredSuggestions = filtered;
+      // Reset to first page when pattern, filters, or sort changes
+      currentPage = 1;
     } else {
-      suggestions = [];
+      allFilteredSuggestions = [];
+      currentPage = 1;
+    }
+  }
+
+  // Reactive: paginate suggestions based on current page
+  $: {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    suggestions = allFilteredSuggestions.slice(startIndex, endIndex);
+  }
+
+  $: totalPages = Math.ceil(allFilteredSuggestions.length / itemsPerPage);
+  $: startItem = allFilteredSuggestions.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  $: endItem = Math.min(currentPage * itemsPerPage, allFilteredSuggestions.length);
+
+  function goToNextPage() {
+    if (currentPage < totalPages) {
+      currentPage++;
+    }
+  }
+
+  function goToPreviousPage() {
+    if (currentPage > 1) {
+      currentPage--;
     }
   }
 </script>
@@ -469,7 +499,7 @@
     </div>
     
     <div class="suggestions-list">
-      {#if suggestions.length > 0}
+      {#if allFilteredSuggestions.length > 0}
         <table class="suggestions-table">
           <thead>
             <tr>
@@ -524,6 +554,29 @@
             {/each}
           </tbody>
         </table>
+        {#if totalPages > 1}
+          <div class="pagination-controls">
+            <button
+              class="pagination-button"
+              disabled={currentPage === 1}
+              on:click={goToPreviousPage}
+              aria-label="Previous page"
+            >
+              Previous
+            </button>
+            <span class="pagination-info">
+              Showing {startItem}-{endItem} of {allFilteredSuggestions.length}
+            </span>
+            <button
+              class="pagination-button"
+              disabled={currentPage === totalPages}
+              on:click={goToNextPage}
+              aria-label="Next page"
+            >
+              Next
+            </button>
+          </div>
+        {/if}
       {:else if pattern.includes('_')}
         <p class="no-suggestions">No matching words found</p>
       {:else}
@@ -802,6 +855,53 @@
     font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
     text-align: center;
     padding: var(--carbon-spacing-05);
+  }
+
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--carbon-spacing-04);
+    border-top: 1px solid var(--carbon-gray-20);
+    margin-top: var(--carbon-spacing-02);
+  }
+
+  .pagination-button {
+    padding: var(--carbon-spacing-02) var(--carbon-spacing-04);
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400;
+    background: var(--carbon-white);
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
+    cursor: pointer;
+    color: var(--carbon-gray-100);
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .pagination-button:hover:not(:disabled) {
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .pagination-button:active:not(:disabled) {
+    background: var(--carbon-gray-20);
+  }
+
+  .pagination-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .pagination-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
+  }
+
+  .pagination-info {
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-70);
   }
 </style>
 

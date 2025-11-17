@@ -803,6 +803,7 @@
   }
 
   .export-button {
+    width: 100%;
     background: var(--carbon-white);
     color: var(--carbon-gray-100);
   }
