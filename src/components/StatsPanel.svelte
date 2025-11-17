@@ -55,6 +55,11 @@
   
   <div class="stat-group">
     <div class="stat-item">
+      <span class="stat-label">Grid Size:</span>
+      <span class="stat-value">{$rows} × {$cols}</span>
+    </div>
+    
+    <div class="stat-item">
       <span class="stat-label">Total Words:</span>
       <span class="stat-value">{stats.totalWords}</span>
     </div>

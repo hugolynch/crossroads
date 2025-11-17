@@ -4,8 +4,9 @@
   import StatsPanel from './StatsPanel.svelte';
   import HelpPanel from './HelpPanel.svelte';
   import FillPanel from './FillPanel.svelte';
+  import LookupPanel from './LookupPanel.svelte';
 
-  let activeTab: 'fill' | 'clues' | 'metadata' | 'stats' | 'help' = 'clues';
+  let activeTab: 'fill' | 'clues' | 'metadata' | 'stats' | 'help' | 'lookup' = 'clues';
 </script>
 
 <div class="right-panel">
@@ -33,6 +34,13 @@
     </button>
     <button
       class="tab"
+      class:active={activeTab === 'lookup'}
+      on:click={() => activeTab = 'lookup'}
+    >
+      Lookup
+    </button>
+    <button
+      class="tab"
       class:active={activeTab === 'metadata'}
       on:click={() => activeTab = 'metadata'}
     >
@@ -54,6 +62,8 @@
       <CluesPanel />
     {:else if activeTab === 'stats'}
       <StatsPanel />
+    {:else if activeTab === 'lookup'}
+      <LookupPanel />
     {:else if activeTab === 'metadata'}
       <MetadataPanel />
     {:else}

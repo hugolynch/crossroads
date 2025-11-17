@@ -599,9 +599,6 @@
     overflow-y: auto;
   }
 
-  .word-lists-section {
-    margin-bottom: var(--carbon-spacing-04);
-  }
 
   .section-toggle {
     display: flex;
