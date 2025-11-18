@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { wordLists, initializeWordLists, loadWordList, saveWordListPreferences } from '../lib/wordLists';
+  import { wordLists, saveWordListPreferences, loadWordList } from '../lib/wordLists';
   import { highlightShortWords, highlightUncheckedCells, showOneLetterClues } from '../lib/store';
 
   let wordListsExpanded: boolean = true;
@@ -19,35 +18,6 @@
     const target = event.target as HTMLInputElement;
     showOneLetterClues.set(target.checked);
   }
-
-  // Initialize word lists immediately if store is empty
-  if ($wordLists.length === 0) {
-    const initialLists = initializeWordLists();
-    wordLists.set(initialLists);
-  }
-
-  onMount(async () => {
-    // Get current lists from store
-    let currentLists = [...$wordLists];
-    
-    // Load only enabled word lists to save time and memory
-    const enabledLists = currentLists.filter(list => list.enabled);
-    const disabledLists = currentLists.filter(list => !list.enabled);
-    
-    // Load enabled lists first (sequentially)
-    for (const list of enabledLists) {
-      await loadWordList(list);
-      // Update store after each load to trigger reactivity
-      currentLists = [...$wordLists];
-      wordLists.set([...currentLists]);
-    }
-    
-    // Load disabled lists in background (lower priority)
-    // This allows them to be available if user enables them later
-    Promise.all(disabledLists.map(list => loadWordList(list))).then(() => {
-      wordLists.set([...$wordLists]);
-    });
-  });
 
   function toggleWordList(id: string) {
     const currentLists = $wordLists;

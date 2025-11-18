@@ -23,6 +23,13 @@
   let uniqueWordsCache: Suggestion[] = [];
   let lastWordListsHash: string = '';
 
+  // Check if word lists are still loading
+  $: hasEnabledLists = $wordLists.length > 0 && $wordLists.some(list => list.enabled);
+  $: wordListsLoading = hasEnabledLists && (
+    $wordLists.some(list => list.enabled && list.loading) ||
+    $wordLists.filter(list => list.enabled).some(list => !list.loading && list.words.length === 0)
+  );
+
   // Get combined word list from all enabled lists (reactive)
   $: combinedWordList = $wordLists
     .filter(list => list.enabled)
@@ -182,6 +189,10 @@
         <span class="label">Length:</span>
         <span class="length-value">{currentWord.length}</span>
       </div>
+      <div class="results-count">
+        <span class="label">Results:</span>
+        <span class="count-value">{allFilteredSuggestions.length.toLocaleString()}</span>
+      </div>
     </div>
 
     <div class="rating-filters">
@@ -325,6 +336,8 @@
         <p class="no-suggestions">Word is already complete</p>
       {/if}
     </div>
+  {:else if wordListsLoading}
+    <p class="no-word-selected">Loading word lists...</p>
   {:else}
     <p class="no-word-selected">Select a word in the grid to see suggestions</p>
   {/if}
@@ -350,7 +363,8 @@
   }
 
   .word-pattern,
-  .word-length {
+  .word-length,
+  .results-count {
     display: flex;
     align-items: center;
     gap: var(--carbon-spacing-02);
@@ -370,7 +384,8 @@
     letter-spacing: 2px;
   }
 
-  .length-value {
+  .length-value,
+  .count-value {
     font-size: 14px;
     font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
     color: var(--carbon-gray-100);

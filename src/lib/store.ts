@@ -11,9 +11,70 @@ export const selectedRow = writable<number>(0);
 export const selectedCol = writable<number>(0);
 export const selectedDirection = writable<'across' | 'down'>('across');
 export const symmetry = writable<SymmetryType>('none');
-export const highlightShortWords = writable<boolean>(false);
-export const highlightUncheckedCells = writable<boolean>(false);
-export const showOneLetterClues = writable<boolean>(false);
+// Load display options from localStorage
+function loadDisplayOptions(): { highlightShortWords: boolean; highlightUncheckedCells: boolean; showOneLetterClues: boolean } {
+  try {
+    const saved = localStorage.getItem('crossword-display-options');
+    if (saved) {
+      const options = JSON.parse(saved);
+      return {
+        highlightShortWords: options.highlightShortWords ?? false,
+        highlightUncheckedCells: options.highlightUncheckedCells ?? false,
+        showOneLetterClues: options.showOneLetterClues ?? false
+      };
+    }
+  } catch (error) {
+    console.error('Failed to load display options:', error);
+  }
+  return {
+    highlightShortWords: false,
+    highlightUncheckedCells: false,
+    showOneLetterClues: false
+  };
+}
+
+// Save display options to localStorage
+function saveDisplayOptions(options: { highlightShortWords: boolean; highlightUncheckedCells: boolean; showOneLetterClues: boolean }) {
+  try {
+    localStorage.setItem('crossword-display-options', JSON.stringify(options));
+  } catch (error) {
+    console.error('Failed to save display options:', error);
+  }
+}
+
+const initialDisplayOptions = loadDisplayOptions();
+
+export const highlightShortWords = writable<boolean>(initialDisplayOptions.highlightShortWords);
+export const highlightUncheckedCells = writable<boolean>(initialDisplayOptions.highlightUncheckedCells);
+export const showOneLetterClues = writable<boolean>(initialDisplayOptions.showOneLetterClues);
+
+// Subscribe to display options changes and save to localStorage
+highlightShortWords.subscribe(value => {
+  const options = {
+    highlightShortWords: value,
+    highlightUncheckedCells: get(highlightUncheckedCells),
+    showOneLetterClues: get(showOneLetterClues)
+  };
+  saveDisplayOptions(options);
+});
+
+highlightUncheckedCells.subscribe(value => {
+  const options = {
+    highlightShortWords: get(highlightShortWords),
+    highlightUncheckedCells: value,
+    showOneLetterClues: get(showOneLetterClues)
+  };
+  saveDisplayOptions(options);
+});
+
+showOneLetterClues.subscribe(value => {
+  const options = {
+    highlightShortWords: get(highlightShortWords),
+    highlightUncheckedCells: get(highlightUncheckedCells),
+    showOneLetterClues: value
+  };
+  saveDisplayOptions(options);
+});
 export const hoveredWordLength = writable<number | null>(null);
 
 // Derived store for detected and numbered words

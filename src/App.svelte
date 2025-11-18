@@ -5,6 +5,7 @@
   import { grid, rows, cols, clues, puzzleTitle, notes, collaborators, symmetry, selectedRow, selectedCol, selectedDirection } from './lib/store';
   import { loadAutosave, saveAutosave } from './lib/autosave';
   import { get } from 'svelte/store';
+  import { wordLists, initializeWordLists, loadWordList } from './lib/wordLists';
 
   let rightPanelCollapsed = false;
   let rightPanelWidth = 500;
@@ -17,7 +18,8 @@
   let isInitialLoad = true;
 
   // Load autosave on mount
-  onMount(() => {
+  onMount(async () => {
+    // Load grid first
     const autosaveData = loadAutosave();
     if (autosaveData) {
       // Load the autosaved state
@@ -43,6 +45,32 @@
       isInitialLoad = false;
       setupAutosave();
     }
+
+    // Load word lists last (after grid is loaded)
+    // Use setTimeout to ensure grid loading completes first
+    setTimeout(async () => {
+      if (get(wordLists).length === 0) {
+        const initialLists = initializeWordLists();
+        wordLists.set(initialLists);
+        
+        // Load only enabled word lists to save time and memory
+        const enabledLists = initialLists.filter(list => list.enabled);
+        const disabledLists = initialLists.filter(list => !list.enabled);
+        
+        // Load enabled lists first (sequentially)
+        for (const list of enabledLists) {
+          await loadWordList(list);
+          // Update store after each load
+          wordLists.set([...get(wordLists)]);
+        }
+        
+        // Load disabled lists in background (lower priority)
+        // This allows them to be available if user enables them later
+        Promise.all(disabledLists.map(list => loadWordList(list))).then(() => {
+          wordLists.set([...get(wordLists)]);
+        });
+      }
+    }, 100); // Small delay to ensure grid loads first
 
     // Also save on page unload
     window.addEventListener('beforeunload', performAutosave);
