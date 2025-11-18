@@ -158,7 +158,7 @@
 <main>
   <div class="center-panel">
     <div class="logo-container">
-      <img src="/logo.svg" alt="Crossword Editor" class="logo" />
+      <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Crossword Editor" class="logo" />
     </div>
     <Grid />
   </div>
