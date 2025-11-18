@@ -128,7 +128,7 @@
 </script>
 
 <div class="lookup-panel">
-  <h2>Lookup</h2>
+  <h2>Lookup <span class="coming-soon-badge">Coming Soon</span></h2>
 
   <!-- Primary Search Box -->
   <div class="search-section">
@@ -252,6 +252,21 @@
     font-weight: 600;
     font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
     color: var(--carbon-gray-100);
+    display: flex;
+    align-items: center;
+    gap: var(--carbon-spacing-03);
+  }
+
+  .coming-soon-badge {
+    font-size: 11px;
+    font-weight: 400;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-70);
+    background: var(--carbon-gray-10);
+    padding: var(--carbon-spacing-01) var(--carbon-spacing-02);
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .lookup-panel h3 {

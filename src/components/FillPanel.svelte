@@ -186,6 +186,7 @@
   let isApplyingAutofill = false;
   let autofillProgress = '';
   let hasMoreThanMaxVariations = false;
+  let shouldCancelAutofill = false;
   
   // Reactive statement to ensure UI updates when variations change
   $: hasVariations = autofillVariations.length > 0;
@@ -403,8 +404,14 @@
     variations: Cell[][][],
     seenCombinations: Set<string>,
     onProgress?: (selections: number, total: number, found: number) => Promise<void> | void,
-    progressCounter: { count: number } = { count: 0 }
+    progressCounter: { count: number } = { count: 0 },
+    cancellationFlag?: { cancelled: boolean }
   ): Promise<boolean> {
+    // Check for cancellation
+    if (cancellationFlag?.cancelled) {
+      return false;
+    }
+    
     // If we've filled all words, we have a valid solution
     if (currentSelections.size === wordsToFill.length) {
       // Optimized combination key generation
@@ -477,6 +484,11 @@
           await onProgress(testSelections.size, wordsToFill.length, variations.length);
         }
         
+        // Check for cancellation before recursing
+        if (cancellationFlag?.cancelled) {
+          return false;
+        }
+        
         // Recursively try to fill the rest
         const result = await backtrackFill(
           grid,
@@ -488,11 +500,12 @@
           variations,
           seenCombinations,
           onProgress,
-          progressCounter
+          progressCounter,
+          cancellationFlag
         );
         
-        if (result) {
-          return true; // Found enough variations
+        if (result || cancellationFlag?.cancelled) {
+          return result; // Found enough variations or cancelled
         }
       }
     }
@@ -500,10 +513,15 @@
     return false;
   }
 
+  function cancelAutofill() {
+    shouldCancelAutofill = true;
+  }
+
   // Generate autofill variations using backtracking algorithm
   async function generateAutofill() {
     if (isAutofilling) return;
     isAutofilling = true;
+    shouldCancelAutofill = false;
     autofillProgress = 'Analyzing grid...';
     
     await new Promise(resolve => setTimeout(resolve, 10));
@@ -573,6 +591,15 @@
     // Progress update tracking
     let lastProgressUpdate = Date.now();
     const progressCounter = { count: 0 };
+    const cancellationFlag = { cancelled: false };
+    
+    // Check for cancellation periodically
+    const cancellationCheck = setInterval(() => {
+      if (shouldCancelAutofill) {
+        cancellationFlag.cancelled = true;
+        clearInterval(cancellationCheck);
+      }
+    }, 50);
     
     await backtrackFill(
       currentGrid,
@@ -584,6 +611,10 @@
       variations,
       seenCombinations,
       async (selections, total, found) => {
+        // Check for cancellation in progress callback
+        if (shouldCancelAutofill) {
+          cancellationFlag.cancelled = true;
+        }
         const now = Date.now();
         if (now - lastProgressUpdate > 200) { // Update every 200ms
           autofillProgress = `Finding fills... (${found} found, ${selections}/${total} words placed)`;
@@ -592,8 +623,23 @@
           await new Promise(resolve => setTimeout(resolve, 0));
         }
       },
-      progressCounter
+      progressCounter,
+      cancellationFlag
     );
+    
+    clearInterval(cancellationCheck);
+    
+    if (shouldCancelAutofill) {
+      console.log('Autofill cancelled');
+      autofillProgress = 'Autofill cancelled';
+      previewGrid.set(null);
+      autofillVariations = [];
+      currentVariationIndex = -1;
+      hasMoreThanMaxVariations = false;
+      isAutofilling = false;
+      shouldCancelAutofill = false;
+      return;
+    }
     
     console.log('Autofill complete. Variations found:', variations.length);
     
@@ -620,11 +666,8 @@
       // Then set the preview grid
       previewGrid.set(firstVariation);
       
-      if (hasMoreThanMaxVariations) {
-        autofillProgress = 'More than 100 variations found';
-      } else {
-        autofillProgress = `Found ${variations.length} variation${variations.length !== 1 ? 's' : ''}`;
-      }
+      // Clear progress message - variation count is shown in variation-info instead
+      autofillProgress = '';
       
       // Update grid snapshot to prevent clearing
       lastGridSnapshot = JSON.stringify(currentGrid);
@@ -707,7 +750,7 @@
   let lastGridSnapshot: string = '';
   let isInitialized = false;
   
-  // Clear preview when user manually edits grid (but not when we're applying autofill or just completed)
+  // Clear preview when user manually edits grid (but not when we're applying autofill)
   $: {
     // Create a snapshot of the grid to detect actual changes
     const gridSnapshot = JSON.stringify($grid);
@@ -716,19 +759,77 @@
     if (!isInitialized) {
       lastGridSnapshot = gridSnapshot;
       isInitialized = true;
-    } else if ($grid && !isAutofilling && !isApplyingAutofill && !autofillJustCompleted && $previewGrid) {
+    } else if ($grid && !isAutofilling && !isApplyingAutofill && $previewGrid) {
       // Only clear if the grid actually changed (user manually edited)
       if (gridSnapshot !== lastGridSnapshot) {
-        console.log('Grid changed, clearing preview');
-        previewGrid.set(null);
-        autofillVariations = [];
-        currentVariationIndex = -1;
-        autofillJustCompleted = false; // Reset flag when user edits
+        // Check if user typed a letter that differs from preview
+        const hasUserEdit = checkForUserEdit($grid, $previewGrid);
+        
+        // Clear preview if user edited, or if enough time has passed since autofill completed
+        if (hasUserEdit) {
+          console.log('User typed a letter, clearing preview');
+          previewGrid.set(null);
+          autofillVariations = [];
+          currentVariationIndex = -1;
+          autofillJustCompleted = false;
+        }
       }
     }
     
     // Update snapshot
     lastGridSnapshot = gridSnapshot;
+  }
+
+  // Check if user manually edited the grid (typed a letter that differs from preview)
+  function checkForUserEdit(currentGrid: Cell[][], preview: Cell[][] | null): boolean {
+    if (!preview) return false;
+    
+    const currentRows = get(rows);
+    const currentCols = get(cols);
+    
+    for (let row = 0; row < currentRows; row++) {
+      for (let col = 0; col < currentCols; col++) {
+        const currentCell = currentGrid[row]?.[col];
+        const previewCell = preview[row]?.[col];
+        
+        // If user typed a letter in a cell that has a preview letter
+        if (currentCell?.type === 'letter' && currentCell.letter) {
+          if (previewCell?.type === 'letter' && previewCell.letter) {
+            // Both have letters - check if they match
+            if (currentCell.letter !== previewCell.letter) {
+              return true; // User typed different letter than preview
+            }
+          }
+          // If current has a letter but preview cell is empty or black,
+          // and the last snapshot didn't have this letter, it's a user edit
+          // We'll detect this by comparing with the snapshot
+        }
+      }
+    }
+    
+    // Also check if user added a letter to an empty cell that has a preview
+    // by comparing current grid with the last snapshot
+    try {
+      const lastGrid = JSON.parse(lastGridSnapshot);
+      for (let row = 0; row < currentRows; row++) {
+        for (let col = 0; col < currentCols; col++) {
+          const currentCell = currentGrid[row]?.[col];
+          const lastCell = lastGrid[row]?.[col];
+          const previewCell = preview[row]?.[col];
+          
+          // If current has a letter, last didn't, and preview has a letter
+          if (currentCell?.type === 'letter' && currentCell.letter &&
+              lastCell?.type !== 'letter' && previewCell?.type === 'letter' && previewCell.letter) {
+            // User typed a letter in a cell that was empty but has preview
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      // If snapshot parsing fails, fall back to simple check
+    }
+    
+    return false;
   }
 </script>
 
@@ -748,6 +849,12 @@
           <div class="spinner"></div>
           <span class="loading-text">{autofillProgress || 'Generating fills...'}</span>
         </div>
+        <button 
+          class="cancel-autofill-button" 
+          on:click={cancelAutofill}
+        >
+          Cancel
+        </button>
       {/if}
       {#if hasVariations && !isAutofilling}
         <div class="variation-info">
@@ -1328,6 +1435,32 @@
     font-size: 14px;
     font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
     color: var(--carbon-gray-70);
+  }
+
+  .cancel-autofill-button {
+    width: 100%;
+    height: 40px;
+    padding: 0 var(--carbon-spacing-04);
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400;
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    background: var(--carbon-white);
+    color: var(--carbon-gray-100);
+    margin-top: var(--carbon-spacing-03);
+  }
+
+  .cancel-autofill-button:hover {
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .cancel-autofill-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
   }
 
   .variation-info {
