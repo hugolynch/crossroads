@@ -1,6 +1,50 @@
-# Svelte + TS + Vite
+# Crossroads - Crossword Builder
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+A crossword puzzle builder built with Svelte, TypeScript, and Vite.
+
+## 🚀 Deployment
+
+This project is configured to deploy automatically to GitHub Pages using GitHub Actions.
+
+### Initial Setup
+
+1. **Create a GitHub repository** (if you haven't already):
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/crossroads.git
+   git branch -M main
+   git push -u origin main
+   ```
+
+2. **Enable GitHub Pages**:
+   - Go to your repository on GitHub
+   - Navigate to **Settings** → **Pages**
+   - Under **Source**, select **GitHub Actions**
+   - The workflow will automatically deploy when you push to the `main` branch
+
+3. **First Deployment**:
+   - Push your code to GitHub:
+     ```bash
+     git add .
+     git commit -m "Initial commit with GitHub Pages setup"
+     git push
+     ```
+   - Go to the **Actions** tab in your repository to see the deployment progress
+   - Once complete, your site will be available at: `https://YOUR_USERNAME.github.io/crossroads/`
+
+### Local Development
+
+```bash
+npm install
+npm run dev
+```
+
+### Building for Production
+
+```bash
+npm run build
+```
+
+The built files will be in the `dist` directory, ready for deployment.
 
 ## Recommended IDE Setup
 
