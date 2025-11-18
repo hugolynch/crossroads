@@ -6,6 +6,7 @@
   import { createEmptyGrid } from '../lib/gridUtils';
   import type { Cell } from '../lib/types';
   import { exportToPuz } from '../lib/puzExport';
+  import { importFromPuz } from '../lib/puzImport';
 
   const STORAGE_KEY = 'crossword-puzzles';
 
@@ -272,6 +273,75 @@
     }
   }
 
+  let fileInput: HTMLInputElement;
+
+  function handleImportPuz() {
+    fileInput?.click();
+  }
+
+  async function handleFileChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    
+    if (!file) {
+      return;
+    }
+    
+    // Check file extension
+    if (!file.name.toLowerCase().endsWith('.puz')) {
+      alert('Please select a .puz file');
+      return;
+    }
+    
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const importedData = importFromPuz(arrayBuffer);
+      
+      // Load the imported puzzle into the grid
+      rows.set(importedData.rows);
+      cols.set(importedData.cols);
+      grid.set(importedData.grid);
+      clues.set(importedData.clues);
+      puzzleTitle.set(importedData.puzzleTitle || '');
+      notes.set(importedData.notes || '');
+      
+      // Set author as constructor if available
+      if (importedData.author) {
+        const existingConstructor = get(collaborators).find(c => c.role === 'Constructor');
+        if (existingConstructor) {
+          updateCollaboratorName(existingConstructor.id, importedData.author);
+        } else {
+          collaborators.update(collabs => [
+            ...collabs,
+            { id: Date.now().toString(), name: importedData.author, role: 'Constructor' }
+          ]);
+        }
+      }
+      
+      // Clear current puzzle ID so next save creates a new puzzle
+      currentPuzzleId.set(null);
+      
+      // Show success message
+      showLoadSuccess = true;
+      if (loadSuccessTimeout) {
+        clearTimeout(loadSuccessTimeout);
+      }
+      loadSuccessTimeout = setTimeout(() => {
+        showLoadSuccess = false;
+      }, 3000);
+      
+      // Reset file input
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    } catch (error) {
+      alert('Error importing puzzle: ' + error);
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    }
+  }
+
   function handleTitleChange(event: Event) {
     const target = event.target as HTMLInputElement;
     puzzleTitle.set(target.value);
@@ -395,9 +465,21 @@
   </div>
 
   <div class="control-group">
-    <button class="action-button export-button" on:click={handleExportPuz}>
-      Export
-    </button>
+    <div class="import-export-buttons">
+      <button class="action-button import-button" on:click={handleImportPuz}>
+        Import
+      </button>
+      <button class="action-button export-button" on:click={handleExportPuz}>
+        Export
+      </button>
+    </div>
+    <input
+      bind:this={fileInput}
+      type="file"
+      accept=".puz"
+      style="display: none;"
+      on:change={handleFileChange}
+    />
   </div>
 
   <div class="control-group">
@@ -802,8 +884,34 @@
     outline-offset: -2px;
   }
 
-  .export-button {
+  .import-export-buttons {
+    display: flex;
+    gap: var(--carbon-spacing-02);
     width: 100%;
+  }
+
+  .import-button {
+    flex: 1;
+    background: var(--carbon-white);
+    color: var(--carbon-gray-100);
+  }
+
+  .import-button:hover {
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .import-button:active {
+    background: var(--carbon-gray-20);
+  }
+
+  .import-button:focus-visible {
+    outline: 2px solid var(--carbon-blue-60);
+    outline-offset: -2px;
+  }
+
+  .export-button {
+    flex: 1;
     background: var(--carbon-white);
     color: var(--carbon-gray-100);
   }
