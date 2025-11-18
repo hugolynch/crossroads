@@ -1,5 +1,4 @@
 <script lang="ts">
-  import ControlsPanel from './components/ControlsPanel.svelte';
   import Grid from './components/Grid.svelte';
   import RightPanel from './components/RightPanel.svelte';
   import { onMount } from 'svelte';
@@ -7,15 +6,11 @@
   import { loadAutosave, saveAutosave } from './lib/autosave';
   import { get } from 'svelte/store';
 
-  let leftPanelCollapsed = false;
   let rightPanelCollapsed = false;
-  let leftPanelWidth = 250;
   let rightPanelWidth = 500;
 
-  let isResizingLeft = false;
   let isResizingRight = false;
   let resizeStartX = 0;
-  let resizeStartLeftWidth = 0;
   let resizeStartRightWidth = 0;
 
   let autosaveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -100,39 +95,8 @@
     }
   }
 
-  function toggleLeftPanel() {
-    leftPanelCollapsed = !leftPanelCollapsed;
-  }
-
   function toggleRightPanel() {
     rightPanelCollapsed = !rightPanelCollapsed;
-  }
-
-  function handleLeftResizeStart(event: MouseEvent) {
-    if (leftPanelCollapsed) return;
-    isResizingLeft = true;
-    resizeStartX = event.clientX;
-    resizeStartLeftWidth = leftPanelWidth;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', handleLeftResizeMove);
-    document.addEventListener('mouseup', handleLeftResizeEnd);
-    event.preventDefault();
-  }
-
-  function handleLeftResizeMove(event: MouseEvent) {
-    if (!isResizingLeft) return;
-    const deltaX = event.clientX - resizeStartX;
-    const newWidth = Math.max(150, Math.min(500, resizeStartLeftWidth + deltaX));
-    leftPanelWidth = newWidth;
-  }
-
-  function handleLeftResizeEnd() {
-    isResizingLeft = false;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-    document.removeEventListener('mousemove', handleLeftResizeMove);
-    document.removeEventListener('mouseup', handleLeftResizeEnd);
   }
 
   function handleRightResizeStart(event: MouseEvent) {
@@ -164,34 +128,6 @@
 </script>
 
 <main>
-  <button 
-    class="collapse-button collapse-left" 
-    class:collapsed={leftPanelCollapsed}
-    class:resizing={isResizingLeft}
-    style="left: {leftPanelCollapsed ? 16 : leftPanelWidth + 16}px"
-    on:click={toggleLeftPanel}
-  >
-    {leftPanelCollapsed ? '▶' : '◀'}
-  </button>
-  <div 
-    class="left-panel" 
-    class:collapsed={leftPanelCollapsed}
-    class:resizing={isResizingLeft}
-    style="width: {leftPanelCollapsed ? 0 : leftPanelWidth}px"
-  >
-    {#if !leftPanelCollapsed}
-      <ControlsPanel />
-    {/if}
-  </div>
-  {#if !leftPanelCollapsed}
-    <div 
-      class="resize-handle resize-handle-left"
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Resize left panel"
-      on:mousedown={handleLeftResizeStart}
-    ></div>
-  {/if}
   <div class="center-panel">
     <div class="logo-container">
       <img src="/logo.svg" alt="Crossword Editor" class="logo" />
@@ -234,23 +170,6 @@
     height: 100vh;
     width: 100vw;
     position: relative;
-  }
-
-  .left-panel {
-    background: var(--carbon-gray-10);
-    border: none;
-    overflow-y: auto;
-    position: relative;
-    flex-shrink: 0;
-  }
-
-  .left-panel:not(.collapsed):not(.resizing) {
-    transition: width 0.2s ease;
-  }
-
-  .left-panel.collapsed {
-    border: none;
-    overflow: hidden;
   }
 
   .right-panel {
@@ -327,16 +246,6 @@
   .collapse-button:focus-visible {
     outline: 2px solid var(--carbon-blue-60);
     outline-offset: -2px;
-  }
-
-  .collapse-left {
-    position: absolute;
-    top: var(--carbon-spacing-04);
-    z-index: 100;
-  }
-
-  .collapse-left:not(.resizing) {
-    transition: left 0.2s ease;
   }
 
   .collapse-right {

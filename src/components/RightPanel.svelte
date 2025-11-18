@@ -5,12 +5,20 @@
   import FillPanel from './FillPanel.svelte';
   import LookupPanel from './LookupPanel.svelte';
   import SettingsPanel from './SettingsPanel.svelte';
+  import GridPanel from './GridPanel.svelte';
 
-  let activeTab: 'fill' | 'clues' | 'metadata' | 'help' | 'lookup' | 'settings' = 'clues';
+  let activeTab: 'fill' | 'clues' | 'metadata' | 'help' | 'lookup' | 'settings' | 'grid' = 'clues';
 </script>
 
 <div class="right-panel">
   <div class="tabs">
+    <button
+      class="tab"
+      class:active={activeTab === 'grid'}
+      on:click={() => activeTab = 'grid'}
+    >
+      Grid
+    </button>
     <button
       class="tab"
       class:active={activeTab === 'fill'}
@@ -56,7 +64,9 @@
   </div>
 
   <div class="tab-content">
-    {#if activeTab === 'fill'}
+    {#if activeTab === 'grid'}
+      <GridPanel />
+    {:else if activeTab === 'fill'}
       <FillPanel />
     {:else if activeTab === 'clues'}
       <CluesPanel />
