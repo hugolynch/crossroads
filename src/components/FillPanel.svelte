@@ -816,7 +816,7 @@
   }
 
   .suggestions-table td {
-    padding: var(--carbon-spacing-03) var(--carbon-spacing-04);
+    padding: var(--carbon-spacing-01) var(--carbon-spacing-01);
     border-bottom: 1px solid var(--carbon-gray-20);
     color: var(--carbon-gray-100);
   }
@@ -859,8 +859,6 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--carbon-spacing-04);
-    border-top: 1px solid var(--carbon-gray-20);
-    margin-top: var(--carbon-spacing-02);
   }
 
   .pagination-button {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { puzzleTitle, notes, collaborators, grid, rows, cols, clues, symmetry, selectedRow, selectedCol, currentPuzzleId, words } from '../lib/store';
+  import { puzzleTitle, notes, collaborators, grid, rows, cols, clues, symmetry, selectedRow, selectedCol, currentPuzzleId, words, hoveredWordLength } from '../lib/store';
   import type { Collaborator, CollaboratorRole } from '../lib/store';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
@@ -374,6 +374,54 @@
       collabs.map(c => c.id === id ? { ...c, role } : c)
     );
   }
+
+  $: stats = calculateStats($grid, $words, $rows, $cols);
+
+  function calculateStats(
+    grid: Cell[][],
+    words: import('../lib/types').Word[],
+    totalRows: number,
+    totalCols: number
+  ) {
+    const totalCells = totalRows * totalCols;
+    let blackSquares = 0;
+    const wordLengths: number[] = [];
+
+    // Count black squares
+    for (let row = 0; row < grid.length; row++) {
+      for (let col = 0; col < grid[row].length; col++) {
+        if (grid[row][col]?.type === 'black') {
+          blackSquares++;
+        }
+      }
+    }
+
+    // Collect word lengths
+    for (const word of words) {
+      wordLengths.push(word.length);
+    }
+
+    // Calculate statistics
+    const totalWords = words.length;
+    const blackSquarePercent = totalCells > 0 ? (blackSquares / totalCells) * 100 : 0;
+    const averageWordLength = wordLengths.length > 0
+      ? wordLengths.reduce((sum, len) => sum + len, 0) / wordLengths.length
+      : 0;
+
+    // Count words by length
+    const wordsByLength = new Map<number, number>();
+    for (const length of wordLengths) {
+      wordsByLength.set(length, (wordsByLength.get(length) || 0) + 1);
+    }
+
+    return {
+      totalWords,
+      blackSquares,
+      blackSquarePercent,
+      averageWordLength,
+      wordsByLength
+    };
+  }
 </script>
 
 <div class="metadata-panel">
@@ -451,6 +499,53 @@
       placeholder="Enter notes..."
       rows="5"
     ></textarea>
+  </div>
+
+  <div class="control-group">
+    <h2>Puzzle Statistics</h2>
+    
+    <div class="stat-group">
+      <div class="stat-item">
+        <span class="stat-label">Grid Size:</span>
+        <span class="stat-value">{$rows} × {$cols}</span>
+      </div>
+      
+      <div class="stat-item">
+        <span class="stat-label">Total Words:</span>
+        <span class="stat-value">{stats.totalWords}</span>
+      </div>
+      
+      <div class="stat-item">
+        <span class="stat-label">Black Squares:</span>
+        <span class="stat-value">{stats.blackSquares} ({stats.blackSquarePercent.toFixed(1)}%)</span>
+      </div>
+      
+      <div class="stat-item">
+        <span class="stat-label">Average Word Length:</span>
+        <span class="stat-value">{stats.averageWordLength.toFixed(1)}</span>
+      </div>
+    </div>
+
+    <div class="stat-group">
+      <h3>Words by Length</h3>
+      {#if stats.wordsByLength.size === 0}
+        <p class="no-data">No words detected</p>
+      {:else}
+        <div class="length-distribution">
+          {#each Array.from(stats.wordsByLength.entries()).sort((a, b) => a[0] - b[0]) as [length, count]}
+            <div 
+              class="length-item"
+              class:hovered={$hoveredWordLength === length}
+              on:mouseenter={() => hoveredWordLength.set(length)}
+              on:mouseleave={() => hoveredWordLength.set(null)}
+            >
+              <span class="length-label">{length} letters:</span>
+              <span class="length-count">{count}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
   </div>
 
   <div class="control-group">
@@ -1049,6 +1144,71 @@
   .delete-table-button:focus-visible {
     outline: 2px solid var(--carbon-blue-60);
     outline-offset: -2px;
+  }
+
+  .stat-group {
+    margin-bottom: var(--carbon-spacing-05);
+  }
+
+  .stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--carbon-spacing-02) 0;
+    border-bottom: 1px solid var(--carbon-gray-20);
+  }
+
+  .stat-label {
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
+    font-size: 14px;
+  }
+
+  .stat-value {
+    color: var(--carbon-gray-70);
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+  }
+
+  .length-distribution {
+    display: flex;
+    flex-direction: column;
+    gap: var(--carbon-spacing-02);
+  }
+
+  .length-item {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--carbon-spacing-02) 0;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s;
+  }
+
+  .length-item:hover,
+  .length-item.hovered {
+    background: var(--carbon-gray-10);
+  }
+
+  .length-label {
+    color: var(--carbon-gray-70);
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+  }
+
+  .length-count {
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--carbon-gray-100);
+    font-size: 14px;
+  }
+
+  .no-data {
+    color: var(--carbon-gray-70);
+    font-style: italic;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    margin: var(--carbon-spacing-03) 0;
+    font-size: 14px;
   }
 </style>
 
