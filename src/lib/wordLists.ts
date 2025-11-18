@@ -120,7 +120,7 @@ export async function loadWordList(list: WordList): Promise<void> {
   });
   
   try {
-    const response = await fetch(`/${list.filename}`);
+    const response = await fetch(`${import.meta.env.BASE_URL}${list.filename}`);
     const text = await response.text();
     
     // Process in chunks to avoid blocking
