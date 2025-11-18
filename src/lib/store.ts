@@ -75,7 +75,11 @@ showOneLetterClues.subscribe(value => {
   };
   saveDisplayOptions(options);
 });
+
 export const hoveredWordLength = writable<number | null>(null);
+
+// Preview grid for autofill (shows preview letters at 50% opacity)
+export const previewGrid = writable<Cell[][] | null>(null);
 
 // Derived store for detected and numbered words
 export const words = derived(grid, ($grid) => {

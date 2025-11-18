@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { grid, selectedRow, selectedCol, selectedDirection, words, potentialNumbers, symmetry, rows, cols, highlightShortWords, highlightUncheckedCells, hoveredWordLength } from '../lib/store';
+  import { grid, selectedRow, selectedCol, selectedDirection, words, potentialNumbers, symmetry, rows, cols, highlightShortWords, highlightUncheckedCells, hoveredWordLength, previewGrid } from '../lib/store';
   import { getWordNumber, getWordCells } from '../lib/gridUtils';
   import type { SymmetryType } from '../lib/store';
   import type { Word, Cell } from '../lib/types';
@@ -749,6 +749,9 @@
         {@const inShortWord = $highlightShortWords && isCellInShortRange(rowIndex, colIndex, $words)}
         {@const inUncheckedCell = $highlightUncheckedCells && isCellInUncheckedRange(rowIndex, colIndex, $words)}
         {@const inHoveredLength = isCellInHoveredLength(rowIndex, colIndex, $words, $hoveredWordLength)}
+        {@const previewCell = $previewGrid?.[rowIndex]?.[colIndex]}
+        {@const hasPreviewLetter = $previewGrid && previewCell?.type === 'letter' && previewCell.letter && 
+          (cell.type === 'empty' || (cell.type === 'letter' && cell.letter !== previewCell.letter))}
         <div
           class="cell"
           class:selected={isSelected}
@@ -758,6 +761,7 @@
           class:length-hovered={inHoveredLength}
           class:black={cell.type === 'black'}
           class:letter={cell.type === 'letter'}
+          class:preview={hasPreviewLetter}
           role="button"
           tabindex="-1"
           aria-label="Cell {rowIndex + 1}, {colIndex + 1}"
@@ -774,6 +778,9 @@
           {/if}
           {#if cell.type === 'letter' && cell.letter}
             <span class="cell-letter">{cell.letter}</span>
+          {/if}
+          {#if hasPreviewLetter}
+            <span class="cell-letter cell-letter-preview">{previewCell.letter}</span>
           {/if}
         </div>
       {/each}
@@ -905,6 +912,18 @@
   .cell-letter {
     font-size: calc(var(--cell-size, 40px) * 0.55);
     font-weight: bold;
+  }
+
+  .cell-letter-preview {
+    opacity: 0.5;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .cell.preview {
+    position: relative;
   }
 </style>
 
