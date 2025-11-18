@@ -2,7 +2,7 @@
   import Grid from './components/Grid.svelte';
   import RightPanel from './components/RightPanel.svelte';
   import { onMount } from 'svelte';
-  import { grid, rows, cols, clues, puzzleTitle, notes, collaborators, symmetry, selectedRow, selectedCol, selectedDirection } from './lib/store';
+  import { grid, rows, cols, clues, puzzleTitle, notes, collaborators, symmetry, selectedRow, selectedCol, selectedDirection, activeTab } from './lib/store';
   import { loadAutosave, saveAutosave } from './lib/autosave';
   import { get } from 'svelte/store';
   import { wordLists, initializeWordLists, loadWordList } from './lib/wordLists';
@@ -42,6 +42,8 @@
         setupAutosave();
       }, 0);
     } else {
+      // New puzzle - start on grid tab
+      activeTab.set('grid');
       isInitialLoad = false;
       setupAutosave();
     }

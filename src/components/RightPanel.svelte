@@ -6,75 +6,74 @@
   import LookupPanel from './LookupPanel.svelte';
   import SettingsPanel from './SettingsPanel.svelte';
   import GridPanel from './GridPanel.svelte';
-
-  let activeTab: 'fill' | 'clues' | 'metadata' | 'help' | 'lookup' | 'settings' | 'grid' = 'clues';
+  import { activeTab } from '../lib/store';
 </script>
 
 <div class="right-panel">
   <div class="tabs">
     <button
       class="tab"
-      class:active={activeTab === 'grid'}
-      on:click={() => activeTab = 'grid'}
+      class:active={$activeTab === 'grid'}
+      on:click={() => activeTab.set('grid')}
     >
       Grid
     </button>
     <button
       class="tab"
-      class:active={activeTab === 'fill'}
-      on:click={() => activeTab = 'fill'}
+      class:active={$activeTab === 'fill'}
+      on:click={() => activeTab.set('fill')}
     >
       Fill
     </button>
     <button
       class="tab"
-      class:active={activeTab === 'clues'}
-      on:click={() => activeTab = 'clues'}
+      class:active={$activeTab === 'clues'}
+      on:click={() => activeTab.set('clues')}
     >
       Clues
     </button>
     <button
       class="tab"
-      class:active={activeTab === 'lookup'}
-      on:click={() => activeTab = 'lookup'}
+      class:active={$activeTab === 'lookup'}
+      on:click={() => activeTab.set('lookup')}
     >
       Lookup
     </button>
     <button
       class="tab"
-      class:active={activeTab === 'metadata'}
-      on:click={() => activeTab = 'metadata'}
+      class:active={$activeTab === 'metadata'}
+      on:click={() => activeTab.set('metadata')}
     >
       Info
     </button>
     <button
       class="tab"
-      class:active={activeTab === 'settings'}
-      on:click={() => activeTab = 'settings'}
+      class:active={$activeTab === 'settings'}
+      on:click={() => activeTab.set('settings')}
     >
       Settings
     </button>
     <button
       class="tab"
-      class:active={activeTab === 'help'}
-      on:click={() => activeTab = 'help'}
+      class:active={$activeTab === 'help'}
+      on:click={() => activeTab.set('help')}
     >
       Help
     </button>
   </div>
 
   <div class="tab-content">
-    {#if activeTab === 'grid'}
+    {#if $activeTab === 'grid'}
       <GridPanel />
-    {:else if activeTab === 'fill'}
+    {:else if $activeTab === 'fill'}
       <FillPanel />
-    {:else if activeTab === 'clues'}
+    {:else if $activeTab === 'clues'}
       <CluesPanel />
-    {:else if activeTab === 'lookup'}
+    {:else if $activeTab === 'lookup'}
       <LookupPanel />
-    {:else if activeTab === 'metadata'}
+    {:else if $activeTab === 'metadata'}
       <MetadataPanel />
-    {:else if activeTab === 'settings'}
+    {:else if $activeTab === 'settings'}
       <SettingsPanel />
     {:else}
       <HelpPanel />

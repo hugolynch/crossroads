@@ -112,6 +112,38 @@ export const collaborators = writable<Collaborator[]>([]);
 // Current puzzle ID (for tracking which puzzle is loaded/being edited)
 export const currentPuzzleId = writable<string | null>(null);
 
+// Active tab in the right panel
+export type ActiveTab = 'fill' | 'clues' | 'metadata' | 'help' | 'lookup' | 'settings' | 'grid';
+
+// Load active tab from localStorage
+function loadActiveTab(): ActiveTab {
+  try {
+    const saved = localStorage.getItem('crossword-active-tab');
+    if (saved && ['fill', 'clues', 'metadata', 'help', 'lookup', 'settings', 'grid'].includes(saved)) {
+      return saved as ActiveTab;
+    }
+  } catch (error) {
+    console.error('Failed to load active tab:', error);
+  }
+  return 'grid'; // Default to grid tab
+}
+
+// Save active tab to localStorage
+function saveActiveTab(tab: ActiveTab) {
+  try {
+    localStorage.setItem('crossword-active-tab', tab);
+  } catch (error) {
+    console.error('Failed to save active tab:', error);
+  }
+}
+
+export const activeTab = writable<ActiveTab>(loadActiveTab());
+
+// Subscribe to active tab changes and save to localStorage
+activeTab.subscribe(value => {
+  saveActiveTab(value);
+});
+
 // Update grid when dimensions change
 rows.subscribe((newRows) => {
   grid.update(g => {

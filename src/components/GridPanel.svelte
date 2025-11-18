@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { rows, cols, symmetry, grid, clues, puzzleTitle, notes, collaborators, selectedRow, selectedCol, currentPuzzleId } from '../lib/store';
+  import { rows, cols, symmetry, grid, clues, puzzleTitle, notes, collaborators, selectedRow, selectedCol, currentPuzzleId, activeTab } from '../lib/store';
   import { createEmptyGrid } from '../lib/gridUtils';
   import type { SymmetryType } from '../lib/store';
   import { get } from 'svelte/store';
@@ -101,6 +101,9 @@
     
     // Clear current puzzle ID so next save creates a new puzzle
     currentPuzzleId.set(null);
+    
+    // Reset to grid tab for new puzzle
+    activeTab.set('grid');
   }
 </script>
 
