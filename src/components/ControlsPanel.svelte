@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { rows, cols, symmetry, grid, highlightShortWords, highlightUncheckedCells, clues, puzzleTitle, notes, collaborators, selectedRow, selectedCol, currentPuzzleId, showOneLetterClues } from '../lib/store';
+  import { rows, cols, symmetry, grid, clues, puzzleTitle, notes, collaborators, selectedRow, selectedCol, currentPuzzleId } from '../lib/store';
   import { createEmptyGrid } from '../lib/gridUtils';
   import type { SymmetryType } from '../lib/store';
   import { get } from 'svelte/store';
@@ -51,21 +51,6 @@
   function handleSymmetryChange(event: Event) {
     const target = event.target as HTMLSelectElement;
     symmetry.set(target.value as SymmetryType);
-  }
-
-  function handleHighlightShortWordsChange(event: Event) {
-    const target = event.target as HTMLInputElement;
-    highlightShortWords.set(target.checked);
-  }
-
-  function handleHighlightUncheckedCellsChange(event: Event) {
-    const target = event.target as HTMLInputElement;
-    highlightUncheckedCells.set(target.checked);
-  }
-
-  function handleShowOneLetterCluesChange(event: Event) {
-    const target = event.target as HTMLInputElement;
-    showOneLetterClues.set(target.checked);
   }
 
   function handleClearGrid() {
@@ -192,36 +177,6 @@
       <option value="vertical">Vertical</option>
       <option value="horizontal">Horizontal</option>
     </select>
-  </div>
-  <div class="control-group">
-    <label class="checkbox-label">
-      <input
-        type="checkbox"
-        checked={$highlightShortWords}
-        on:change={handleHighlightShortWordsChange}
-      />
-      <span>Highlight 2-letter entries</span>
-    </label>
-  </div>
-  <div class="control-group">
-    <label class="checkbox-label">
-      <input
-        type="checkbox"
-        checked={$highlightUncheckedCells}
-        on:change={handleHighlightUncheckedCellsChange}
-      />
-      <span>Highlight unchecked entries</span>
-    </label>
-  </div>
-  <div class="control-group">
-    <label class="checkbox-label">
-      <input
-        type="checkbox"
-        checked={$showOneLetterClues}
-        on:change={handleShowOneLetterCluesChange}
-      />
-      <span>Show clues for 1-letter words</span>
-    </label>
   </div>
   <div class="control-group">
     <div class="clear-buttons">
@@ -396,23 +351,6 @@
   .control-group select:focus-visible {
     outline: 2px solid var(--carbon-blue-60);
     outline-offset: -2px;
-  }
-
-  .checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: var(--carbon-spacing-02);
-    cursor: pointer;
-    font-weight: 400;
-    font-size: 14px;
-    color: var(--carbon-gray-100);
-  }
-
-  .checkbox-label input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: var(--carbon-blue-60);
   }
 
   .clear-buttons {

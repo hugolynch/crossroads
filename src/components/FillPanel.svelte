@@ -1,96 +1,9 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { grid, selectedRow, selectedCol, selectedDirection, words } from '../lib/store';
   import { getWordCells } from '../lib/gridUtils';
   import type { Word } from '../lib/types';
-
-  interface WordWithRating {
-    word: string;
-    rating: number | null;
-  }
-
-  interface WordList {
-    id: string;
-    name: string;
-    filename: string;
-    enabled: boolean;
-    words: WordWithRating[];
-    loading: boolean;
-  }
-
-  // Module-level cache to persist loaded word lists across component instances
-  const wordListCache = new Map<string, WordWithRating[]>();
-
-  // Load saved word list preferences from localStorage
-  function loadWordListPreferences(): Record<string, boolean> {
-    try {
-      const saved = localStorage.getItem('crossword-word-list-preferences');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (error) {
-      console.error('Failed to load word list preferences:', error);
-    }
-    return {};
-  }
-
-  // Save word list preferences to localStorage
-  function saveWordListPreferences() {
-    try {
-      const preferences: Record<string, boolean> = {};
-      wordLists.forEach(list => {
-        preferences[list.id] = list.enabled;
-      });
-      localStorage.setItem('crossword-word-list-preferences', JSON.stringify(preferences));
-    } catch (error) {
-      console.error('Failed to save word list preferences:', error);
-    }
-  }
-
-  const savedPreferences = loadWordListPreferences();
-  
-  let wordLists: WordList[] = [
-    {
-      id: 'crossword-nexus',
-      name: 'Crossword Nexus',
-      filename: 'Crossword Nexus Word List.txt',
-      enabled: savedPreferences['crossword-nexus'] !== undefined ? savedPreferences['crossword-nexus'] : true,
-      words: [],
-      loading: false
-    },
-    {
-      id: 'juggernaut',
-      name: 'Juggernaut',
-      filename: 'Juggernaut Word List.txt',
-      enabled: savedPreferences['juggernaut'] !== undefined ? savedPreferences['juggernaut'] : true,
-      words: [],
-      loading: false
-    },
-    {
-      id: 'peter-broda',
-      name: 'Peter Broda',
-      filename: 'Peter Broda Wordlist.txt',
-      enabled: savedPreferences['peter-broda'] !== undefined ? savedPreferences['peter-broda'] : true,
-      words: [],
-      loading: false
-    },
-    {
-      id: 'spread-the-wordlist',
-      name: 'Spread the Wordlist',
-      filename: 'Spread the Wordlist.txt',
-      enabled: savedPreferences['spread-the-wordlist'] !== undefined ? savedPreferences['spread-the-wordlist'] : true,
-      words: [],
-      loading: false
-    },
-    {
-      id: 'collaborative',
-      name: 'The Collaborative Word List Project',
-      filename: 'The Collaborative Word List Project.txt',
-      enabled: savedPreferences['collaborative'] !== undefined ? savedPreferences['collaborative'] : true,
-      words: [],
-      loading: false
-    }
-  ];
+  import { wordLists } from '../lib/wordLists';
+  import type { WordWithRating } from '../lib/wordLists';
 
   interface Suggestion {
     word: string;
@@ -104,125 +17,19 @@
   let minRating: number | null = null;
   let maxRating: number | null = null;
   let sortBy: 'rating' | 'alphabetical' = 'rating';
-  let wordListsExpanded: boolean = true;
   
   // Cache for unique words indexed by length for faster filtering
   let uniqueWordsByLength: Map<number, Suggestion[]> = new Map();
   let uniqueWordsCache: Suggestion[] = [];
   let lastWordListsHash: string = '';
 
-  async function loadWordList(list: WordList) {
-    // Check cache first - if already loaded, use cached data
-    if (wordListCache.has(list.id)) {
-      list.words = wordListCache.get(list.id)!;
-      list.loading = false;
-      wordLists = wordLists; // Trigger reactivity
-      return;
-    }
-    
-    // Skip if already loaded in component
-    if (list.words.length > 0) {
-      wordListCache.set(list.id, list.words);
-      return;
-    }
-    
-    list.loading = true;
-    wordLists = wordLists; // Trigger reactivity for loading state
-    
-    // Use requestIdleCallback or setTimeout to avoid blocking
-    await new Promise(resolve => {
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(() => resolve(undefined), { timeout: 1000 });
-      } else {
-        setTimeout(() => resolve(undefined), 0);
-      }
-    });
-    
-    try {
-      const response = await fetch(`/${list.filename}`);
-      const text = await response.text();
-      
-      // Process in chunks to avoid blocking
-      const lines = text.split('\n');
-      const chunkSize = 10000;
-      list.words = [];
-      
-      for (let i = 0; i < lines.length; i += chunkSize) {
-        const chunk = lines.slice(i, i + chunkSize);
-        const processed = chunk
-          .map(line => line.trim().toUpperCase())
-          .filter(line => line.length > 0 && !line.startsWith('#'))
-          .map(line => {
-            // Check if line has rating (format: WORD;RATING)
-            const parts = line.split(';');
-            if (parts.length === 2) {
-              const word = parts[0].trim();
-              const rating = parseInt(parts[1].trim(), 10);
-              return { word, rating: isNaN(rating) ? null : rating };
-            }
-            return { word: line, rating: null };
-          });
-        list.words.push(...processed);
-        
-        // Yield to browser between chunks
-        if (i + chunkSize < lines.length) {
-          await new Promise(resolve => setTimeout(resolve, 0));
-        }
-      }
-      
-      // Cache the loaded words
-      wordListCache.set(list.id, list.words);
-    } catch (error) {
-      console.error(`Failed to load word list ${list.name}:`, error);
-      list.words = [];
-    } finally {
-      list.loading = false;
-      wordLists = wordLists; // Trigger reactivity after loading completes
-    }
-  }
-
-  onMount(async () => {
-    // Load only enabled word lists to save time and memory
-    const enabledLists = wordLists.filter(list => list.enabled);
-    const disabledLists = wordLists.filter(list => !list.enabled);
-    
-    // Load enabled lists first (sequentially)
-    for (const list of enabledLists) {
-      await loadWordList(list);
-    }
-    
-    // Load disabled lists in background (lower priority)
-    // This allows them to be available if user enables them later
-    Promise.all(disabledLists.map(list => loadWordList(list))).then(() => {
-      wordLists = wordLists; // Trigger reactivity when background loading completes
-    });
-    
-    wordLists = wordLists; // Final reactivity trigger for enabled lists
-  });
-
-  function toggleWordList(id: string) {
-    const list = wordLists.find(l => l.id === id);
-    if (list) {
-      list.enabled = !list.enabled;
-      wordLists = wordLists; // Trigger reactivity
-      saveWordListPreferences(); // Save preferences
-      
-      // If enabling a list that hasn't been loaded yet, load it now
-      if (list.enabled && list.words.length === 0 && !list.loading) {
-        loadWordList(list).then(() => {
-          wordLists = wordLists; // Trigger reactivity after loading
-        });
-      }
-    }
-  }
-
-  // Get combined word list from all enabled lists
-  $: combinedWordList = wordLists
+  // Get combined word list from all enabled lists (reactive)
+  $: combinedWordList = $wordLists
     .filter(list => list.enabled)
     .flatMap(list => list.words);
   
   // Create a hash of enabled lists to detect when we need to rebuild cache
-  $: wordListsHash = wordLists
+  $: wordListsHash = $wordLists
     .filter(list => list.enabled)
     .map(list => `${list.id}:${list.words.length}`)
     .join('|');
@@ -365,71 +172,6 @@
 </script>
 
 <div class="fill-panel">
-  <div class="word-lists-section">
-    <button
-      class="section-toggle"
-      on:click={() => wordListsExpanded = !wordListsExpanded}
-      aria-expanded={wordListsExpanded}
-      aria-label={wordListsExpanded ? 'Collapse word lists' : 'Expand word lists'}
-    >
-      <h3 class="section-heading">Word Lists</h3>
-      <svg
-        class="chevron-icon"
-        class:expanded={wordListsExpanded}
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="1.5"
-          d="M4 6l4 4 4-4"
-        />
-      </svg>
-    </button>
-    {#if wordListsExpanded}
-      <table class="word-lists-table">
-        <thead>
-          <tr>
-            <th>Enable</th>
-            <th>Name</th>
-            <th>Words</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each wordLists as list (list.id)}
-            <tr>
-              <td>
-                <input
-                  type="checkbox"
-                  id="list-{list.id}"
-                  checked={list.enabled}
-                  on:change={() => toggleWordList(list.id)}
-                  disabled={list.loading}
-                />
-              </td>
-              <td>
-                <label for="list-{list.id}">{list.name}</label>
-              </td>
-              <td>
-                {#if list.loading}
-                  <span class="loading-text">Loading...</span>
-                {:else}
-                  {list.words.length.toLocaleString()}
-                {/if}
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    {/if}
-  </div>
-
   {#if currentWord}
     <div class="word-info">
       <div class="word-pattern">
@@ -599,98 +341,6 @@
     overflow-y: auto;
   }
 
-
-  .section-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 0;
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-align: left;
-    margin-bottom: var(--carbon-spacing-03);
-    transition: opacity 0.2s;
-  }
-
-  .section-toggle:hover {
-    opacity: 0.8;
-  }
-
-  .section-toggle:focus-visible {
-    outline: 2px solid var(--carbon-blue-60);
-    outline-offset: 2px;
-    border-radius: 2px;
-  }
-
-  .section-heading {
-    font-size: 14px;
-    font-weight: 600;
-    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
-    color: var(--carbon-gray-100);
-    margin: 0;
-  }
-
-  .chevron-icon {
-    color: var(--carbon-gray-70);
-    transition: transform 0.2s;
-    flex-shrink: 0;
-    margin-left: var(--carbon-spacing-02);
-  }
-
-  .chevron-icon.expanded {
-    transform: rotate(180deg);
-  }
-
-  .word-lists-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
-    font-size: 14px;
-  }
-
-  .word-lists-table thead {
-    background: var(--carbon-gray-10);
-  }
-
-  .word-lists-table th {
-    padding: var(--carbon-spacing-03) var(--carbon-spacing-04);
-    text-align: left;
-    font-weight: 600;
-    font-size: 12px;
-    color: var(--carbon-gray-100);
-    border-bottom: 1px solid var(--carbon-gray-20);
-  }
-
-  .word-lists-table td {
-    padding: var(--carbon-spacing-03) var(--carbon-spacing-04);
-    border-bottom: 1px solid var(--carbon-gray-20);
-    color: var(--carbon-gray-100);
-  }
-
-  .word-lists-table tbody tr:hover {
-    background: var(--carbon-gray-10);
-  }
-
-  .word-lists-table input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: var(--carbon-blue-60);
-  }
-
-  .word-lists-table label {
-    cursor: pointer;
-    font-size: 14px;
-    color: var(--carbon-gray-100);
-  }
-
-  .loading-text {
-    color: var(--carbon-gray-70);
-    font-style: italic;
-  }
-
   .word-info {
     display: flex;
     flex-direction: column;
@@ -729,8 +379,6 @@
   .rating-filters {
     display: flex;
     gap: var(--carbon-spacing-04);
-    padding-bottom: var(--carbon-spacing-04);
-    border-bottom: 1px solid var(--carbon-gray-20);
   }
 
   .filter-group {
