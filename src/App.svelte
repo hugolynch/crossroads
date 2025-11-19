@@ -9,7 +9,7 @@
   import { getWordCells } from './lib/gridUtils';
 
   let rightPanelCollapsed = false;
-  let rightPanelWidth = 500;
+  let rightPanelWidth = 600;
 
   let isResizingRight = false;
   let resizeStartX = 0;
@@ -160,7 +160,7 @@
   function handleRightResizeMove(event: MouseEvent) {
     if (!isResizingRight) return;
     const deltaX = resizeStartX - event.clientX; // Inverted because right panel
-    const newWidth = Math.max(150, Math.min(500, resizeStartRightWidth + deltaX));
+    const newWidth = Math.max(150, Math.min(800, resizeStartRightWidth + deltaX));
     rightPanelWidth = newWidth;
   }
 
