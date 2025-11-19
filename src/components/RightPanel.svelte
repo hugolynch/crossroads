@@ -6,7 +6,21 @@
   import LookupPanel from './LookupPanel.svelte';
   import SettingsPanel from './SettingsPanel.svelte';
   import GridPanel from './GridPanel.svelte';
-  import { activeTab } from '../lib/store';
+  import PlayPanel from './PlayPanel.svelte';
+  import { activeTab, isPlayMode, solutionGrid, playGrid, selectedWordId, incorrectCells, playAuthor } from '../lib/store';
+
+  function handleTabClick(tab: string) {
+    // If switching away from play tab while in play mode, exit play mode
+    if ($isPlayMode && tab !== 'play') {
+      isPlayMode.set(false);
+      solutionGrid.set(null);
+      playGrid.set(null);
+      selectedWordId.set(null);
+      incorrectCells.set(new Set());
+      playAuthor.set('');
+    }
+    activeTab.set(tab);
+  }
 </script>
 
 <div class="right-panel">
@@ -14,51 +28,58 @@
     <button
       class="tab"
       class:active={$activeTab === 'grid'}
-      on:click={() => activeTab.set('grid')}
+      on:click={() => handleTabClick('grid')}
     >
       Grid
     </button>
     <button
       class="tab"
       class:active={$activeTab === 'fill'}
-      on:click={() => activeTab.set('fill')}
+      on:click={() => handleTabClick('fill')}
     >
       Fill
     </button>
     <button
       class="tab"
       class:active={$activeTab === 'clues'}
-      on:click={() => activeTab.set('clues')}
+      on:click={() => handleTabClick('clues')}
     >
       Clues
     </button>
     <button
       class="tab"
       class:active={$activeTab === 'lookup'}
-      on:click={() => activeTab.set('lookup')}
+      on:click={() => handleTabClick('lookup')}
     >
       Lookup
     </button>
     <button
       class="tab"
       class:active={$activeTab === 'metadata'}
-      on:click={() => activeTab.set('metadata')}
+      on:click={() => handleTabClick('metadata')}
     >
       Info
     </button>
     <button
       class="tab"
       class:active={$activeTab === 'settings'}
-      on:click={() => activeTab.set('settings')}
+      on:click={() => handleTabClick('settings')}
     >
       Settings
     </button>
     <button
       class="tab"
       class:active={$activeTab === 'help'}
-      on:click={() => activeTab.set('help')}
+      on:click={() => handleTabClick('help')}
     >
       Help
+    </button>
+    <button
+      class="tab"
+      class:active={$activeTab === 'play'}
+      on:click={() => handleTabClick('play')}
+    >
+      Play
     </button>
   </div>
 
@@ -75,6 +96,8 @@
       <MetadataPanel />
     {:else if $activeTab === 'settings'}
       <SettingsPanel />
+    {:else if $activeTab === 'play'}
+      <PlayPanel />
     {:else}
       <HelpPanel />
     {/if}

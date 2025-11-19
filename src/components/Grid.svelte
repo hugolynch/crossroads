@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { grid, selectedRow, selectedCol, selectedDirection, words, potentialNumbers, symmetry, rows, cols, highlightShortWords, highlightUncheckedCells, hoveredWordLength, previewGrid } from '../lib/store';
+  import { grid, selectedRow, selectedCol, selectedDirection, words, potentialNumbers, symmetry, rows, cols, highlightShortWords, highlightUncheckedCells, hoveredWordLength, previewGrid, isPlayMode, playGrid, solutionGrid, selectedWordId, incorrectCells, puzzleTitle, showCompletionMessage } from '../lib/store';
   import { getWordNumber, getWordCells } from '../lib/gridUtils';
   import type { SymmetryType } from '../lib/store';
   import type { Word, Cell } from '../lib/types';
@@ -13,6 +13,143 @@
   const MAX_CELL_SIZE = 40;
   const GRID_BORDER = 2; // 2px border on each side = 4px total
   const CELL_GAP = 1; // Gap between cells
+  let completionAlertShown = false;
+  let completionMessageTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  // Reactive statement to determine which grid to display
+  $: displayGrid = $isPlayMode && $playGrid ? $playGrid : $grid;
+  
+  // Reset completion alert flag when exiting play mode
+  $: if (!$isPlayMode) {
+    completionAlertShown = false;
+    showCompletionMessage.set(false);
+    if (completionMessageTimeout) {
+      clearTimeout(completionMessageTimeout);
+      completionMessageTimeout = null;
+    }
+  }
+
+  // Check if a word is complete (all cells filled)
+  function isWordComplete(word: Word, gridToCheck: Cell[][]): boolean {
+    const cells = getWordCells(gridToCheck, word);
+    return cells.every(cell => cell.type === 'letter' && cell.letter);
+  }
+
+  // Find the first unfilled letter position in a word (for play mode navigation)
+  function findFirstUnfilledPosition(word: Word, gridToCheck: Cell[][]): { row: number; col: number } | null {
+    const cells = getWordCells(gridToCheck, word);
+    
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i];
+      if (cell.type !== 'letter' || !cell.letter) {
+        // Found first unfilled cell
+        if (word.direction === 'across') {
+          return { row: word.startRow, col: word.startCol + i };
+        } else {
+          return { row: word.startRow + i, col: word.startCol };
+        }
+      }
+    }
+    
+    // Word is complete, return start position
+    return { row: word.startRow, col: word.startCol };
+  }
+
+  // Check if puzzle is complete and correct
+  function checkPuzzleCompletion(playGridToCheck: Cell[][]) {
+    if (completionAlertShown) return; // Already shown alert
+    
+    const $solutionGrid = get(solutionGrid);
+    const $rows = get(rows);
+    const $cols = get(cols);
+    
+    if (!$solutionGrid) return;
+    
+    // Check if all letter cells are filled and match solution
+    for (let r = 0; r < $rows; r++) {
+      for (let c = 0; c < $cols; c++) {
+        const cell = playGridToCheck[r]?.[c];
+        const solutionCell = $solutionGrid[r]?.[c];
+        
+        if (solutionCell?.type === 'letter') {
+          // Solution has a letter here, so play grid must have the same letter
+          if (cell?.type !== 'letter' || cell.letter !== solutionCell.letter) {
+            return; // Not complete or incorrect
+          }
+        }
+      }
+    }
+    
+    // Puzzle is complete and correct!
+    completionAlertShown = true;
+    showCompletionMessage.set(true);
+    if (completionMessageTimeout) {
+      clearTimeout(completionMessageTimeout);
+    }
+    completionMessageTimeout = setTimeout(() => {
+      showCompletionMessage.set(false);
+    }, 5000); // Show for 5 seconds
+  }
+
+  // Update selected word ID based on current selection
+  function updateSelectedWordId() {
+    const $selectedRow = get(selectedRow);
+    const $selectedCol = get(selectedCol);
+    const $selectedDirection = get(selectedDirection);
+    const word = getWordAtCell($selectedRow, $selectedCol, $selectedDirection);
+    if (word) {
+      selectedWordId.set(word.id);
+    } else {
+      selectedWordId.set(null);
+    }
+  }
+
+  // Find next incomplete word, looping through all across then all down
+  function findNextIncompleteWord(currentWord: Word | undefined, allWords: Word[], gridToCheck: Cell[][], reverse: boolean = false): Word | undefined {
+    // Sort words: all across first (by number), then all down (by number)
+    const sortedWords = [...allWords].sort((a, b) => {
+      if (a.direction !== b.direction) {
+        // Across comes before down
+        return a.direction === 'across' ? -1 : 1;
+      }
+      // Same direction, sort by number
+      if (a.number !== b.number) return a.number - b.number;
+      // Same number, sort by position
+      if (a.startRow !== b.startRow) return a.startRow - b.startRow;
+      return a.startCol - b.startCol;
+    });
+
+    if (!currentWord) {
+      // No current word, return first incomplete word
+      return sortedWords.find(w => !isWordComplete(w, gridToCheck));
+    }
+
+    // Find current word index
+    const currentIndex = sortedWords.findIndex(w => w.id === currentWord.id);
+    
+    if (reverse) {
+      // Search backwards
+      for (let i = 1; i < sortedWords.length; i++) {
+        const prevIndex = (currentIndex - i + sortedWords.length) % sortedWords.length;
+        const prevWord = sortedWords[prevIndex];
+        if (!isWordComplete(prevWord, gridToCheck)) {
+          return prevWord;
+        }
+      }
+    } else {
+      // Start searching from next word
+      for (let i = 1; i < sortedWords.length; i++) {
+        const nextIndex = (currentIndex + i) % sortedWords.length;
+        const nextWord = sortedWords[nextIndex];
+        if (!isWordComplete(nextWord, gridToCheck)) {
+          return nextWord;
+        }
+      }
+    }
+
+    // All words are complete
+    return undefined;
+  }
 
   function getWordAtCell(row: number, col: number, direction: 'across' | 'down'): Word | undefined {
     const $words = get(words);
@@ -225,6 +362,9 @@
       
       selectedRow.set(row);
       selectedCol.set(col);
+      
+      // Update selected word ID for clue highlighting
+      updateSelectedWordId();
     }
     
     if (gridElement) {
@@ -279,7 +419,9 @@
   }
 
   function handleKeyDown(event: KeyboardEvent) {
-    const $grid = get(grid);
+    const $isPlayMode = get(isPlayMode);
+    const $playGrid = get(playGrid);
+    const $grid = $isPlayMode && $playGrid ? $playGrid : get(grid);
     const $selectedRow = get(selectedRow);
     const $selectedCol = get(selectedCol);
     const gridRows = $grid.length;
@@ -305,6 +447,7 @@
         } else if (acrossWord && !downWord) {
           selectedDirection.set('across');
         }
+        updateSelectedWordId();
       }
       event.preventDefault();
     } else if (event.key === 'ArrowDown' && $selectedRow < gridRows - 1) {
@@ -327,6 +470,7 @@
         } else if (acrossWord && !downWord) {
           selectedDirection.set('across');
         }
+        updateSelectedWordId();
       }
       event.preventDefault();
     } else if (event.key === 'ArrowLeft' && $selectedCol > 0) {
@@ -349,6 +493,7 @@
         } else if (downWord && !acrossWord) {
           selectedDirection.set('down');
         }
+        updateSelectedWordId();
       }
       event.preventDefault();
     } else if (event.key === 'ArrowRight' && $selectedCol < gridCols - 1) {
@@ -371,6 +516,7 @@
         } else if (downWord && !acrossWord) {
           selectedDirection.set('down');
         }
+        updateSelectedWordId();
       }
       event.preventDefault();
     } else if (event.key === 'Tab') {
@@ -423,61 +569,105 @@
           }
         }
         
-        // Move to the start of the previous word
+        // Move to the start of the previous word, skipping filled words in play mode
         if (prevWord) {
-          selectedRow.set(prevWord.startRow);
-          selectedCol.set(prevWord.startCol);
+          if ($isPlayMode && $playGrid) {
+            // In play mode, skip filled words (search backwards)
+            const incompleteWord = findNextIncompleteWord(prevWord, $words, $playGrid, true);
+            if (incompleteWord) {
+              const pos = findFirstUnfilledPosition(incompleteWord, $playGrid);
+              if (pos) {
+                selectedRow.set(pos.row);
+                selectedCol.set(pos.col);
+              } else {
+                selectedRow.set(incompleteWord.startRow);
+                selectedCol.set(incompleteWord.startCol);
+              }
+              selectedDirection.set(incompleteWord.direction);
+              updateSelectedWordId();
+            } else {
+              // All words are filled, just move to the previous word
+              selectedRow.set(prevWord.startRow);
+              selectedCol.set(prevWord.startCol);
+              selectedDirection.set(prevWord.direction);
+              updateSelectedWordId();
+            }
+          } else {
+            selectedRow.set(prevWord.startRow);
+            selectedCol.set(prevWord.startCol);
+            selectedDirection.set(prevWord.direction);
+            updateSelectedWordId();
+          }
         }
       } else {
         // Tab: Skip to next word, switching direction when wrapping
         const currentWord = getWordAtCell($selectedRow, $selectedCol, $selectedDirection);
         
-        // Sort words by grid number (which follows position order)
-        const wordsInDirection = $words
-          .filter(w => w.direction === $selectedDirection)
-          .sort((a, b) => {
-            // Sort by grid number first
-            if (a.number !== b.number) return a.number - b.number;
-            // If same number, sort by position
-            if (a.startRow !== b.startRow) return a.startRow - b.startRow;
-            return a.startCol - b.startCol;
-          });
-        
-        let nextWord: Word | undefined;
-        
-        if (currentWord) {
-          // Find the next word by number (not by position)
-          const currentIndex = wordsInDirection.findIndex(w => w.id === currentWord.id);
-          if (currentIndex >= 0 && currentIndex < wordsInDirection.length - 1) {
-            nextWord = wordsInDirection[currentIndex + 1];
+        if ($isPlayMode && $playGrid) {
+          // In play mode, use findNextIncompleteWord which skips filled words
+          const nextWord = findNextIncompleteWord(currentWord, $words, $playGrid);
+          if (nextWord) {
+            const pos = findFirstUnfilledPosition(nextWord, $playGrid);
+            if (pos) {
+              selectedRow.set(pos.row);
+              selectedCol.set(pos.col);
+            } else {
+              selectedRow.set(nextWord.startRow);
+              selectedCol.set(nextWord.startCol);
+            }
+            selectedDirection.set(nextWord.direction);
+            updateSelectedWordId();
           }
-        }
-        
-        // If no next word found, switch direction and go to first word in opposite direction
-        if (!nextWord) {
-          const oppositeDirection = $selectedDirection === 'across' ? 'down' : 'across';
-          const wordsInOppositeDirection = $words
-            .filter(w => w.direction === oppositeDirection)
+        } else {
+          // Normal edit mode - original logic
+          // Sort words by grid number (which follows position order)
+          const wordsInDirection = $words
+            .filter(w => w.direction === $selectedDirection)
             .sort((a, b) => {
+              // Sort by grid number first
               if (a.number !== b.number) return a.number - b.number;
+              // If same number, sort by position
               if (a.startRow !== b.startRow) return a.startRow - b.startRow;
               return a.startCol - b.startCol;
             });
           
-          if (wordsInOppositeDirection.length > 0) {
-            nextWord = wordsInOppositeDirection[0];
-            selectedDirection.set(oppositeDirection);
-          } else if (wordsInDirection.length > 0) {
-            // Fallback: wrap to first word in same direction if no words in opposite direction
-            nextWord = wordsInDirection[0];
+          let nextWord: Word | undefined;
+          
+          if (currentWord) {
+            // Find the next word by number (not by position)
+            const currentIndex = wordsInDirection.findIndex(w => w.id === currentWord.id);
+            if (currentIndex >= 0 && currentIndex < wordsInDirection.length - 1) {
+              nextWord = wordsInDirection[currentIndex + 1];
+            }
           }
-        }
-        
-        // Move to the start of the next word
-        if (nextWord) {
-          selectedRow.set(nextWord.startRow);
-          selectedCol.set(nextWord.startCol);
-          selectedDirection.set(nextWord.direction);
+          
+          // If no next word found, switch direction and go to first word in opposite direction
+          if (!nextWord) {
+            const oppositeDirection = $selectedDirection === 'across' ? 'down' : 'across';
+            const wordsInOppositeDirection = $words
+              .filter(w => w.direction === oppositeDirection)
+              .sort((a, b) => {
+                if (a.number !== b.number) return a.number - b.number;
+                if (a.startRow !== b.startRow) return a.startRow - b.startRow;
+                return a.startCol - b.startCol;
+              });
+            
+            if (wordsInOppositeDirection.length > 0) {
+              nextWord = wordsInOppositeDirection[0];
+              selectedDirection.set(oppositeDirection);
+            } else if (wordsInDirection.length > 0) {
+              // Fallback: wrap to first word in same direction if no words in opposite direction
+              nextWord = wordsInDirection[0];
+            }
+          }
+          
+          // Move to the start of the next word
+          if (nextWord) {
+            selectedRow.set(nextWord.startRow);
+            selectedCol.set(nextWord.startCol);
+            selectedDirection.set(nextWord.direction);
+            updateSelectedWordId();
+          }
         }
       }
       
@@ -498,6 +688,7 @@
         // Only down word exists, switch to it
         selectedDirection.set('down');
       }
+      updateSelectedWordId();
       event.preventDefault();
     } else if (event.key === '.' || event.code === 'Period') {
       const symType = get(symmetry);
@@ -557,7 +748,10 @@
       event.preventDefault();
       event.stopPropagation();
     } else if (event.key === 'Backspace' || event.key === 'Delete') {
-      const currentCell = $grid[$selectedRow][$selectedCol];
+      const $isPlayMode = get(isPlayMode);
+      const $playGrid = get(playGrid);
+      const currentGrid = $isPlayMode && $playGrid ? $playGrid : $grid;
+      const currentCell = currentGrid[$selectedRow][$selectedCol];
       // Don't remove black cells, but still move back
       if (currentCell.type === 'black') {
         // Move back one cell in current direction, skipping over black cells
@@ -592,33 +786,57 @@
       const totalCols = get(cols);
       const $selectedDirection = get(selectedDirection);
       
-      grid.update(g => {
-        const newGrid = g.map(row => [...row]);
-        newGrid[$selectedRow] = [...newGrid[$selectedRow]];
-        newGrid[$selectedRow][$selectedCol] = { type: 'empty' };
-        return applySymmetry(newGrid, $selectedRow, $selectedCol, symType, totalRows, totalCols);
-      });
+      if ($isPlayMode && $playGrid) {
+        // In play mode, update playGrid
+        playGrid.update(g => {
+          if (!g) return g;
+          const newGrid = g.map(row => [...row]);
+          newGrid[$selectedRow] = [...newGrid[$selectedRow]];
+          const currentCell = newGrid[$selectedRow][$selectedCol];
+          // Preserve the number if it exists
+          newGrid[$selectedRow][$selectedCol] = { 
+            type: 'empty',
+            number: currentCell.number
+          };
+          return newGrid;
+        });
+        // Also sync to main grid for display
+        const updatedPlayGrid = get(playGrid);
+        if (updatedPlayGrid) {
+          grid.set(updatedPlayGrid);
+        }
+      } else {
+        // Normal edit mode
+        grid.update(g => {
+          const newGrid = g.map(row => [...row]);
+          newGrid[$selectedRow] = [...newGrid[$selectedRow]];
+          newGrid[$selectedRow][$selectedCol] = { type: 'empty' };
+          return applySymmetry(newGrid, $selectedRow, $selectedCol, symType, totalRows, totalCols);
+        });
+      }
       
       // Always move to previous cell in current direction, skipping over black cells
-      const updatedGrid = get(grid);
+      const updatedGrid = $isPlayMode && $playGrid ? get(playGrid) : get(grid);
       
-      if ($selectedDirection === 'across') {
-        // Move left, skipping over black cells
-        let prevCol = $selectedCol - 1;
-        while (prevCol >= 0 && updatedGrid[$selectedRow]?.[prevCol]?.type === 'black') {
-          prevCol--;
-        }
-        if (prevCol >= 0) {
-          selectedCol.set(prevCol);
-        }
-      } else if ($selectedDirection === 'down') {
-        // Move up, skipping over black cells
-        let prevRow = $selectedRow - 1;
-        while (prevRow >= 0 && updatedGrid[prevRow]?.[$selectedCol]?.type === 'black') {
-          prevRow--;
-        }
-        if (prevRow >= 0) {
-          selectedRow.set(prevRow);
+      if (updatedGrid) {
+        if ($selectedDirection === 'across') {
+          // Move left, skipping over black cells
+          let prevCol = $selectedCol - 1;
+          while (prevCol >= 0 && updatedGrid[$selectedRow]?.[prevCol]?.type === 'black') {
+            prevCol--;
+          }
+          if (prevCol >= 0) {
+            selectedCol.set(prevCol);
+          }
+        } else if ($selectedDirection === 'down') {
+          // Move up, skipping over black cells
+          let prevRow = $selectedRow - 1;
+          while (prevRow >= 0 && updatedGrid[prevRow]?.[$selectedCol]?.type === 'black') {
+            prevRow--;
+          }
+          if (prevRow >= 0) {
+            selectedRow.set(prevRow);
+          }
         }
       }
       
@@ -626,34 +844,146 @@
     } else if (event.key.length === 1 && /[a-zA-Z]/.test(event.key) && !event.metaKey && !event.ctrlKey) {
       const letter = event.key.toUpperCase();
       const $selectedDirection = get(selectedDirection);
+      const $isPlayMode = get(isPlayMode);
+      const $playGrid = get(playGrid);
       
-      grid.update(g => {
-        const newGrid = g.map(row => [...row]);
-        newGrid[$selectedRow] = [...newGrid[$selectedRow]];
-        newGrid[$selectedRow][$selectedCol] = { type: 'letter', letter };
-        return newGrid;
-      });
-      
-      // Move to next cell in current direction, skipping over black cells
-      const updatedGrid = get(grid);
-      
-      if ($selectedDirection === 'across') {
-        // Move right, skipping over black cells
-        let nextCol = $selectedCol + 1;
-        while (nextCol < gridCols && updatedGrid[$selectedRow]?.[nextCol]?.type === 'black') {
-          nextCol++;
+      if ($isPlayMode && $playGrid) {
+        // In play mode, update playGrid
+        playGrid.update(g => {
+          if (!g) return g;
+          const newGrid = g.map(row => [...row]);
+          newGrid[$selectedRow] = [...newGrid[$selectedRow]];
+          const currentCell = newGrid[$selectedRow][$selectedCol];
+          // Preserve the number if it exists
+          newGrid[$selectedRow][$selectedCol] = { 
+            type: 'letter', 
+            letter,
+            number: currentCell.number
+          };
+          return newGrid;
+        });
+        // Also sync to main grid for display
+        const updatedPlayGrid = get(playGrid);
+        if (updatedPlayGrid) {
+          grid.set(updatedPlayGrid);
+          
+          // Check if current word is now complete and auto-advance
+          const currentWord = getWordAtCell($selectedRow, $selectedCol, $selectedDirection);
+          if (currentWord) {
+            selectedWordId.set(currentWord.id);
+            
+            if (isWordComplete(currentWord, updatedPlayGrid)) {
+              // Find next incomplete word
+              const $words = get(words);
+              const nextWord = findNextIncompleteWord(currentWord, $words, updatedPlayGrid);
+              if (nextWord) {
+                const pos = findFirstUnfilledPosition(nextWord, updatedPlayGrid);
+                if (pos) {
+                  selectedRow.set(pos.row);
+                  selectedCol.set(pos.col);
+                } else {
+                  selectedRow.set(nextWord.startRow);
+                  selectedCol.set(nextWord.startCol);
+                }
+                selectedDirection.set(nextWord.direction);
+                selectedWordId.set(nextWord.id);
+                // Don't move to next cell, we've already jumped to next word
+                event.preventDefault();
+                return;
+              } else {
+                // All words are complete, check if puzzle is correct
+                checkPuzzleCompletion(updatedPlayGrid);
+              }
+            }
+          }
+          
+          // Move to next cell in current direction, skipping over black cells
+          if ($selectedDirection === 'across') {
+            // Move right, skipping over black cells
+            let nextCol = $selectedCol + 1;
+            while (nextCol < gridCols && updatedPlayGrid[$selectedRow]?.[nextCol]?.type === 'black') {
+              nextCol++;
+            }
+            if (nextCol < gridCols) {
+              selectedCol.set(nextCol);
+              updateSelectedWordId();
+            } else {
+              // Reached end of word, skip to next incomplete word
+              const currentWord = getWordAtCell($selectedRow, $selectedCol, $selectedDirection);
+              const $words = get(words);
+              const nextWord = findNextIncompleteWord(currentWord, $words, updatedPlayGrid);
+              if (nextWord) {
+                const pos = findFirstUnfilledPosition(nextWord, updatedPlayGrid);
+                if (pos) {
+                  selectedRow.set(pos.row);
+                  selectedCol.set(pos.col);
+                } else {
+                  selectedRow.set(nextWord.startRow);
+                  selectedCol.set(nextWord.startCol);
+                }
+                selectedDirection.set(nextWord.direction);
+                selectedWordId.set(nextWord.id);
+              }
+            }
+          } else if ($selectedDirection === 'down') {
+            // Move down, skipping over black cells
+            let nextRow = $selectedRow + 1;
+            while (nextRow < gridRows && updatedPlayGrid[nextRow]?.[$selectedCol]?.type === 'black') {
+              nextRow++;
+            }
+            if (nextRow < gridRows) {
+              selectedRow.set(nextRow);
+              updateSelectedWordId();
+            } else {
+              // Reached end of word, skip to next incomplete word
+              const currentWord = getWordAtCell($selectedRow, $selectedCol, $selectedDirection);
+              const $words = get(words);
+              const nextWord = findNextIncompleteWord(currentWord, $words, updatedPlayGrid);
+              if (nextWord) {
+                const pos = findFirstUnfilledPosition(nextWord, updatedPlayGrid);
+                if (pos) {
+                  selectedRow.set(pos.row);
+                  selectedCol.set(pos.col);
+                } else {
+                  selectedRow.set(nextWord.startRow);
+                  selectedCol.set(nextWord.startCol);
+                }
+                selectedDirection.set(nextWord.direction);
+                selectedWordId.set(nextWord.id);
+              }
+            }
+          }
         }
-        if (nextCol < gridCols) {
-          selectedCol.set(nextCol);
-        }
-      } else if ($selectedDirection === 'down') {
-        // Move down, skipping over black cells
-        let nextRow = $selectedRow + 1;
-        while (nextRow < gridRows && updatedGrid[nextRow]?.[$selectedCol]?.type === 'black') {
-          nextRow++;
-        }
-        if (nextRow < gridRows) {
-          selectedRow.set(nextRow);
+      } else {
+        // Normal edit mode
+        grid.update(g => {
+          const newGrid = g.map(row => [...row]);
+          newGrid[$selectedRow] = [...newGrid[$selectedRow]];
+          newGrid[$selectedRow][$selectedCol] = { type: 'letter', letter };
+          return newGrid;
+        });
+        
+        // Move to next cell in current direction, skipping over black cells
+        const updatedGrid = get(grid);
+        
+        if ($selectedDirection === 'across') {
+          // Move right, skipping over black cells
+          let nextCol = $selectedCol + 1;
+          while (nextCol < gridCols && updatedGrid[$selectedRow]?.[nextCol]?.type === 'black') {
+            nextCol++;
+          }
+          if (nextCol < gridCols) {
+            selectedCol.set(nextCol);
+          }
+        } else if ($selectedDirection === 'down') {
+          // Move down, skipping over black cells
+          let nextRow = $selectedRow + 1;
+          while (nextRow < gridRows && updatedGrid[nextRow]?.[$selectedCol]?.type === 'black') {
+            nextRow++;
+          }
+          if (nextRow < gridRows) {
+            selectedRow.set(nextRow);
+          }
         }
       }
       
@@ -738,7 +1068,7 @@
     on:click={handleGridClick}
     style="--cell-size: {cellSize}px;"
   >
-  {#each $grid as row, rowIndex}
+  {#each displayGrid as row, rowIndex}
     <div class="grid-row">
       {#each row as cell, colIndex}
         {@const wordNum = getWordNumber(rowIndex, colIndex, $words)}
@@ -746,12 +1076,13 @@
         {@const displayNum = cell.number ?? wordNum ?? potentialNum}
         {@const isSelected = rowIndex === $selectedRow && colIndex === $selectedCol}
         {@const inCurrentWord = isCellInCurrentWord(rowIndex, colIndex, $selectedRow, $selectedCol, $selectedDirection)}
-        {@const inShortWord = $highlightShortWords && isCellInShortRange(rowIndex, colIndex, $words)}
-        {@const inUncheckedCell = $highlightUncheckedCells && isCellInUncheckedRange(rowIndex, colIndex, $words)}
+        {@const inShortWord = !$isPlayMode && $highlightShortWords && isCellInShortRange(rowIndex, colIndex, $words)}
+        {@const inUncheckedCell = !$isPlayMode && $highlightUncheckedCells && isCellInUncheckedRange(rowIndex, colIndex, $words)}
         {@const inHoveredLength = isCellInHoveredLength(rowIndex, colIndex, $words, $hoveredWordLength)}
         {@const previewCell = $previewGrid?.[rowIndex]?.[colIndex]}
         {@const hasPreviewLetter = $previewGrid && previewCell?.type === 'letter' && previewCell.letter && 
           (cell.type === 'empty' || (cell.type === 'letter' && cell.letter !== previewCell.letter))}
+        {@const isIncorrect = $isPlayMode && $incorrectCells.has(`${rowIndex}-${colIndex}`)}
         <div
           class="cell"
           class:selected={isSelected}
@@ -762,6 +1093,7 @@
           class:black={cell.type === 'black'}
           class:letter={cell.type === 'letter'}
           class:preview={hasPreviewLetter}
+          class:incorrect={isIncorrect}
           role="button"
           tabindex="-1"
           aria-label="Cell {rowIndex + 1}, {colIndex + 1}"
@@ -924,6 +1256,18 @@
 
   .cell.preview {
     position: relative;
+  }
+
+  .cell.incorrect {
+    background: #FFE6E6 !important;
+  }
+
+  .cell.incorrect.selected {
+    background: #FFCCCC !important;
+  }
+
+  .cell.incorrect.in-word {
+    background: #FFD6D6 !important;
   }
 </style>
 

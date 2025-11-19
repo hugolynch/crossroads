@@ -2,10 +2,11 @@
   import Grid from './components/Grid.svelte';
   import RightPanel from './components/RightPanel.svelte';
   import { onMount } from 'svelte';
-  import { grid, rows, cols, clues, puzzleTitle, notes, collaborators, symmetry, selectedRow, selectedCol, selectedDirection, activeTab } from './lib/store';
+  import { grid, rows, cols, clues, puzzleTitle, notes, collaborators, symmetry, selectedRow, selectedCol, selectedDirection, activeTab, isPlayMode, playGrid, solutionGrid, incorrectCells, selectedWordId, words, showCompletionMessage } from './lib/store';
   import { loadAutosave, saveAutosave } from './lib/autosave';
   import { get } from 'svelte/store';
   import { wordLists, initializeWordLists, loadWordList } from './lib/wordLists';
+  import { getWordCells } from './lib/gridUtils';
 
   let rightPanelCollapsed = false;
   let rightPanelWidth = 500;
@@ -16,9 +17,23 @@
 
   let autosaveTimeout: ReturnType<typeof setTimeout> | null = null;
   let isInitialLoad = true;
+  let showCheckMenu = false;
+  let showRevealMenu = false;
+  let completionAlertShown = false;
+  let completionMessageTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Load autosave on mount
   onMount(async () => {
+    // Close dropdowns when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.play-button-group')) {
+        showCheckMenu = false;
+        showRevealMenu = false;
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
     // Load grid first
     const autosaveData = loadAutosave();
     if (autosaveData) {
@@ -82,6 +97,7 @@
         clearTimeout(autosaveTimeout);
       }
       window.removeEventListener('beforeunload', performAutosave);
+      document.removeEventListener('click', handleClickOutside);
     };
   });
 
@@ -155,13 +171,345 @@
     document.removeEventListener('mousemove', handleRightResizeMove);
     document.removeEventListener('mouseup', handleRightResizeEnd);
   }
+
+  function checkSelectedLetters() {
+    const $playGrid = get(playGrid);
+    const $solutionGrid = get(solutionGrid);
+    const $selectedRow = get(selectedRow);
+    const $selectedCol = get(selectedCol);
+    
+    if (!$playGrid || !$solutionGrid) return;
+    
+    const newIncorrect = new Set<string>();
+    const cell = $playGrid[$selectedRow]?.[$selectedCol];
+    const solutionCell = $solutionGrid[$selectedRow]?.[$selectedCol];
+    
+    if (cell?.type === 'letter' && solutionCell?.type === 'letter') {
+      if (cell.letter !== solutionCell.letter) {
+        newIncorrect.add(`${$selectedRow}-${$selectedCol}`);
+      }
+    }
+    
+    incorrectCells.set(newIncorrect);
+  }
+
+  function checkSelectedWord() {
+    const $playGrid = get(playGrid);
+    const $solutionGrid = get(solutionGrid);
+    const $selectedRow = get(selectedRow);
+    const $selectedCol = get(selectedCol);
+    const $selectedDirection = get(selectedDirection);
+    const $words = get(words);
+    
+    if (!$playGrid || !$solutionGrid) return;
+    
+    const word = $words.find(w => 
+      w.startRow === $selectedRow && 
+      w.startCol === $selectedCol && 
+      w.direction === $selectedDirection
+    );
+    
+    if (!word) return;
+    
+    const newIncorrect = new Set(get(incorrectCells));
+    const cells = getWordCells($playGrid, word);
+    const solutionCells = getWordCells($solutionGrid, word);
+    
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i];
+      const solutionCell = solutionCells[i];
+      
+      if (cell.type === 'letter' && solutionCell.type === 'letter') {
+        if (cell.letter !== solutionCell.letter) {
+          if (word.direction === 'across') {
+            newIncorrect.add(`${word.startRow}-${word.startCol + i}`);
+          } else {
+            newIncorrect.add(`${word.startRow + i}-${word.startCol}`);
+          }
+        }
+      }
+    }
+    
+    incorrectCells.set(newIncorrect);
+  }
+
+  function isPuzzleComplete(): boolean {
+    const $playGrid = get(playGrid);
+    const $solutionGrid = get(solutionGrid);
+    const $rows = get(rows);
+    const $cols = get(cols);
+    
+    if (!$playGrid || !$solutionGrid) return false;
+    
+    // Check if all letter cells are filled and match solution
+    for (let r = 0; r < $rows; r++) {
+      for (let c = 0; c < $cols; c++) {
+        const cell = $playGrid[r]?.[c];
+        const solutionCell = $solutionGrid[r]?.[c];
+        
+        if (solutionCell?.type === 'letter') {
+          // Solution has a letter here, so play grid must have the same letter
+          if (cell?.type !== 'letter' || cell.letter !== solutionCell.letter) {
+            return false;
+          }
+        }
+      }
+    }
+    
+    return true;
+  }
+
+  function checkEntirePuzzle() {
+    const $playGrid = get(playGrid);
+    const $solutionGrid = get(solutionGrid);
+    const $rows = get(rows);
+    const $cols = get(cols);
+    
+    if (!$playGrid || !$solutionGrid) return;
+    
+    const newIncorrect = new Set<string>();
+    
+    for (let r = 0; r < $rows; r++) {
+      for (let c = 0; c < $cols; c++) {
+        const cell = $playGrid[r]?.[c];
+        const solutionCell = $solutionGrid[r]?.[c];
+        
+        if (cell?.type === 'letter' && solutionCell?.type === 'letter') {
+          if (cell.letter !== solutionCell.letter) {
+            newIncorrect.add(`${r}-${c}`);
+          }
+        }
+      }
+    }
+    
+    incorrectCells.set(newIncorrect);
+    
+    // Check if puzzle is complete and correct
+    if (!completionAlertShown && newIncorrect.size === 0 && isPuzzleComplete()) {
+      completionAlertShown = true;
+      showCompletionMessage.set(true);
+      if (completionMessageTimeout) {
+        clearTimeout(completionMessageTimeout);
+      }
+      completionMessageTimeout = setTimeout(() => {
+        showCompletionMessage.set(false);
+      }, 5000); // Show for 5 seconds
+    }
+  }
+  
+  // Reset completion alert flag when exiting play mode
+  $: if (!$isPlayMode) {
+    completionAlertShown = false;
+    showCompletionMessage.set(false);
+    if (completionMessageTimeout) {
+      clearTimeout(completionMessageTimeout);
+      completionMessageTimeout = null;
+    }
+  }
+
+  function revealSelectedLetters() {
+    const $playGrid = get(playGrid);
+    const $solutionGrid = get(solutionGrid);
+    const $selectedRow = get(selectedRow);
+    const $selectedCol = get(selectedCol);
+    
+    if (!$playGrid || !$solutionGrid) return;
+    
+    const solutionCell = $solutionGrid[$selectedRow]?.[$selectedCol];
+    if (solutionCell?.type === 'letter' && solutionCell.letter) {
+      playGrid.update(g => {
+        if (!g) return g;
+        const newGrid = g.map(row => [...row]);
+        newGrid[$selectedRow] = [...newGrid[$selectedRow]];
+        const currentCell = newGrid[$selectedRow][$selectedCol];
+        newGrid[$selectedRow][$selectedCol] = {
+          type: 'letter',
+          letter: solutionCell.letter,
+          number: currentCell.number
+        };
+        return newGrid;
+      });
+      const updatedGrid = get(playGrid);
+      if (updatedGrid) {
+        grid.set(updatedGrid);
+      }
+    }
+  }
+
+  function revealSelectedWord() {
+    const $playGrid = get(playGrid);
+    const $solutionGrid = get(solutionGrid);
+    const $selectedRow = get(selectedRow);
+    const $selectedCol = get(selectedCol);
+    const $selectedDirection = get(selectedDirection);
+    const $words = get(words);
+    
+    if (!$playGrid || !$solutionGrid) return;
+    
+    const word = $words.find(w => 
+      w.startRow === $selectedRow && 
+      w.startCol === $selectedCol && 
+      w.direction === $selectedDirection
+    );
+    
+    if (!word) return;
+    
+    playGrid.update(g => {
+      if (!g) return g;
+      const newGrid = g.map(row => [...row]);
+      const solutionCells = getWordCells($solutionGrid, word);
+      
+      for (let i = 0; i < solutionCells.length; i++) {
+        const solutionCell = solutionCells[i];
+        if (solutionCell.type === 'letter' && solutionCell.letter) {
+          if (word.direction === 'across') {
+            const r = word.startRow;
+            const c = word.startCol + i;
+            const currentCell = newGrid[r][c];
+            newGrid[r][c] = {
+              type: 'letter',
+              letter: solutionCell.letter,
+              number: currentCell.number
+            };
+          } else {
+            const r = word.startRow + i;
+            const c = word.startCol;
+            const currentCell = newGrid[r][c];
+            newGrid[r][c] = {
+              type: 'letter',
+              letter: solutionCell.letter,
+              number: currentCell.number
+            };
+          }
+        }
+      }
+      return newGrid;
+    });
+    const updatedGrid = get(playGrid);
+    if (updatedGrid) {
+      grid.set(updatedGrid);
+    }
+  }
+
+  function revealEntirePuzzle() {
+    const $solutionGrid = get(solutionGrid);
+    const $rows = get(rows);
+    const $cols = get(cols);
+    
+    if (!$solutionGrid) return;
+    
+    playGrid.update(g => {
+      if (!g) return g;
+      const newGrid = g.map(row => [...row]);
+      for (let r = 0; r < $rows; r++) {
+        for (let c = 0; c < $cols; c++) {
+          const solutionCell = $solutionGrid[r]?.[c];
+          if (solutionCell?.type === 'letter' && solutionCell.letter) {
+            const currentCell = newGrid[r][c];
+            newGrid[r][c] = {
+              type: 'letter',
+              letter: solutionCell.letter,
+              number: currentCell.number
+            };
+          }
+        }
+      }
+      return newGrid;
+    });
+    const updatedGrid = get(playGrid);
+    if (updatedGrid) {
+      grid.set(updatedGrid);
+    }
+  }
 </script>
 
 <main>
+  {#if $showCompletionMessage}
+    <div class="completion-alert">
+      {$puzzleTitle ? `Congratulations! You completed "${$puzzleTitle}" correctly!` : 'Congratulations! You completed the puzzle correctly!'}
+    </div>
+  {/if}
   <div class="center-panel">
     <div class="logo-container">
       <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Crossword Editor" class="logo" />
     </div>
+    {#if $isPlayMode}
+      <div class="play-controls">
+        <div class="play-button-group">
+          <button class="play-action-button" on:click={() => showCheckMenu = !showCheckMenu}>
+            Check
+            <svg
+              class="chevron-icon"
+              class:expanded={showCheckMenu}
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M4 6l4 4 4-4"
+              />
+            </svg>
+          </button>
+          {#if showCheckMenu}
+            <div class="play-dropdown-menu">
+              <button class="play-dropdown-item" on:click={() => { checkSelectedLetters(); showCheckMenu = false; }}>
+                Check Selected Letters
+              </button>
+              <button class="play-dropdown-item" on:click={() => { checkSelectedWord(); showCheckMenu = false; }}>
+                Check Selected Word
+              </button>
+              <button class="play-dropdown-item" on:click={() => { checkEntirePuzzle(); showCheckMenu = false; }}>
+                Check Entire Puzzle
+              </button>
+            </div>
+          {/if}
+        </div>
+        
+        <div class="play-button-group">
+          <button class="play-action-button" on:click={() => showRevealMenu = !showRevealMenu}>
+            Reveal
+            <svg
+              class="chevron-icon"
+              class:expanded={showRevealMenu}
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M4 6l4 4 4-4"
+              />
+            </svg>
+          </button>
+          {#if showRevealMenu}
+            <div class="play-dropdown-menu">
+              <button class="play-dropdown-item" on:click={() => { revealSelectedLetters(); showRevealMenu = false; }}>
+                Reveal Selected Letters
+              </button>
+              <button class="play-dropdown-item" on:click={() => { revealSelectedWord(); showRevealMenu = false; }}>
+                Reveal Selected Word
+              </button>
+              <button class="play-dropdown-item" on:click={() => { revealEntirePuzzle(); showRevealMenu = false; }}>
+                Reveal Entire Puzzle
+              </button>
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
     <Grid />
   </div>
   {#if !rightPanelCollapsed}
@@ -305,5 +653,107 @@
     margin-bottom: var(--carbon-spacing-05);
     display: flex;
     justify-content: center;
+  }
+
+  .play-controls {
+    display: flex;
+    gap: var(--carbon-spacing-03);
+    margin-bottom: var(--carbon-spacing-04);
+    justify-content: center;
+  }
+
+  .play-button-group {
+    position: relative;
+  }
+
+  .play-action-button {
+    display: flex;
+    align-items: center;
+    gap: var(--carbon-spacing-02);
+    padding: var(--carbon-spacing-02) var(--carbon-spacing-04);
+    background: var(--carbon-white);
+    color: var(--carbon-gray-100);
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
+    font-size: 14px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .play-action-button:hover {
+    background: var(--carbon-gray-10);
+    border-color: var(--carbon-gray-30);
+  }
+
+  .chevron-icon {
+    color: var(--carbon-gray-70);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    margin-left: var(--carbon-spacing-02);
+  }
+
+  .chevron-icon.expanded {
+    transform: rotate(180deg);
+  }
+
+  .play-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: var(--carbon-spacing-01);
+    background: var(--carbon-white);
+    border: 1px solid var(--carbon-gray-20);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    min-width: 180px;
+  }
+
+  .play-dropdown-item {
+    display: block;
+    width: 100%;
+    padding: var(--carbon-spacing-03) var(--carbon-spacing-04);
+    background: var(--carbon-white);
+    border: none;
+    text-align: left;
+    font-size: 14px;
+    color: var(--carbon-gray-100);
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .play-dropdown-item:hover {
+    background: var(--carbon-gray-10);
+  }
+
+  .completion-alert {
+    position: fixed;
+    top: var(--carbon-spacing-05);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--carbon-white);
+    color: var(--carbon-gray-100);
+    border: 1px solid var(--carbon-gray-20);
+    border-radius: 0;
+    padding: var(--carbon-spacing-03) var(--carbon-spacing-05);
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(-50%) translateY(-20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
   }
 </style>

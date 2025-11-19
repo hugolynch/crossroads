@@ -1,6 +1,6 @@
 <script lang="ts">
   import { wordLists, saveWordListPreferences, loadWordList } from '../lib/wordLists';
-  import { highlightShortWords, highlightUncheckedCells, showOneLetterClues } from '../lib/store';
+  import { highlightShortWords, highlightUncheckedCells, showOneLetterClues, isPlayMode } from '../lib/store';
 
   let wordListsExpanded: boolean = true;
 
@@ -46,6 +46,7 @@
         type="checkbox"
         checked={$highlightShortWords}
         on:change={handleHighlightShortWordsChange}
+        disabled={$isPlayMode}
       />
       <span>Highlight 2-letter entries</span>
     </label>
@@ -54,6 +55,7 @@
         type="checkbox"
         checked={$highlightUncheckedCells}
         on:change={handleHighlightUncheckedCellsChange}
+        disabled={$isPlayMode}
       />
       <span>Highlight unchecked entries</span>
     </label>
@@ -257,6 +259,16 @@
     height: 16px;
     cursor: pointer;
     accent-color: var(--carbon-blue-60);
+  }
+
+  .checkbox-label input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .checkbox-label:has(input[type="checkbox"]:disabled) {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 </style>
 

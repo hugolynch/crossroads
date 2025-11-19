@@ -113,13 +113,13 @@ export const collaborators = writable<Collaborator[]>([]);
 export const currentPuzzleId = writable<string | null>(null);
 
 // Active tab in the right panel
-export type ActiveTab = 'fill' | 'clues' | 'metadata' | 'help' | 'lookup' | 'settings' | 'grid';
+export type ActiveTab = 'fill' | 'clues' | 'metadata' | 'help' | 'lookup' | 'settings' | 'grid' | 'play';
 
 // Load active tab from localStorage
 function loadActiveTab(): ActiveTab {
   try {
     const saved = localStorage.getItem('crossword-active-tab');
-    if (saved && ['fill', 'clues', 'metadata', 'help', 'lookup', 'settings', 'grid'].includes(saved)) {
+    if (saved && ['fill', 'clues', 'metadata', 'help', 'lookup', 'settings', 'grid', 'play'].includes(saved)) {
       return saved as ActiveTab;
     }
   } catch (error) {
@@ -143,6 +143,16 @@ export const activeTab = writable<ActiveTab>(loadActiveTab());
 activeTab.subscribe(value => {
   saveActiveTab(value);
 });
+
+// Play mode stores
+// When in play mode, solutionGrid stores the solution and playGrid stores player's fill
+export const isPlayMode = writable<boolean>(false);
+export const solutionGrid = writable<Cell[][] | null>(null); // The solution puzzle
+export const playGrid = writable<Cell[][] | null>(null); // Player's current fill (blank cells for empty)
+export const selectedWordId = writable<string | null>(null); // Currently selected word ID for highlighting clues
+export const incorrectCells = writable<Set<string>>(new Set()); // Set of cell keys (row-col) that are incorrect
+export const playAuthor = writable<string>(''); // Author of the puzzle being played
+export const showCompletionMessage = writable<boolean>(false); // Show completion success message
 
 // Update grid when dimensions change
 rows.subscribe((newRows) => {
