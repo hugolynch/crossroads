@@ -175,6 +175,25 @@
       // Set play mode (after setting grid so words are calculated correctly)
       isPlayMode.set(true);
       
+      // Select first horizontal word after a brief delay to ensure words are calculated
+      setTimeout(() => {
+        const $words = get(words);
+        const acrossWords = $words.filter(w => w.direction === 'across' && w.length > 1);
+        if (acrossWords.length > 0) {
+          // Sort by number, then by position
+          const sortedAcross = acrossWords.sort((a, b) => {
+            if (a.number !== b.number) return a.number - b.number;
+            if (a.startRow !== b.startRow) return a.startRow - b.startRow;
+            return a.startCol - b.startCol;
+          });
+          const firstWord = sortedAcross[0];
+          selectedRow.set(firstWord.startRow);
+          selectedCol.set(firstWord.startCol);
+          selectedDirection.set('across');
+          selectedWordId.set(firstWord.id);
+        }
+      }, 100);
+      
       loadSavedPuzzlesList();
       
       showLoadSuccess = true;
@@ -252,6 +271,25 @@
       
       // Clear current puzzle ID
       currentPuzzleId.set(null);
+      
+      // Select first horizontal word after a brief delay to ensure words are calculated
+      setTimeout(() => {
+        const $words = get(words);
+        const acrossWords = $words.filter(w => w.direction === 'across' && w.length > 1);
+        if (acrossWords.length > 0) {
+          // Sort by number, then by position
+          const sortedAcross = acrossWords.sort((a, b) => {
+            if (a.number !== b.number) return a.number - b.number;
+            if (a.startRow !== b.startRow) return a.startRow - b.startRow;
+            return a.startCol - b.startCol;
+          });
+          const firstWord = sortedAcross[0];
+          selectedRow.set(firstWord.startRow);
+          selectedCol.set(firstWord.startCol);
+          selectedDirection.set('across');
+          selectedWordId.set(firstWord.id);
+        }
+      }, 100);
       
       showLoadSuccess = true;
       if (loadSuccessTimeout) {
