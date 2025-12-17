@@ -587,8 +587,8 @@
               updateSelectedWordId();
             } else {
               // All words are filled, just move to the previous word
-              selectedRow.set(prevWord.startRow);
-              selectedCol.set(prevWord.startCol);
+          selectedRow.set(prevWord.startRow);
+          selectedCol.set(prevWord.startCol);
               selectedDirection.set(prevWord.direction);
               updateSelectedWordId();
             }
@@ -620,52 +620,52 @@
           }
         } else {
           // Normal edit mode - original logic
-          // Sort words by grid number (which follows position order)
-          const wordsInDirection = $words
-            .filter(w => w.direction === $selectedDirection)
+        // Sort words by grid number (which follows position order)
+        const wordsInDirection = $words
+          .filter(w => w.direction === $selectedDirection)
+          .sort((a, b) => {
+            // Sort by grid number first
+            if (a.number !== b.number) return a.number - b.number;
+            // If same number, sort by position
+            if (a.startRow !== b.startRow) return a.startRow - b.startRow;
+            return a.startCol - b.startCol;
+          });
+        
+        let nextWord: Word | undefined;
+        
+        if (currentWord) {
+          // Find the next word by number (not by position)
+          const currentIndex = wordsInDirection.findIndex(w => w.id === currentWord.id);
+          if (currentIndex >= 0 && currentIndex < wordsInDirection.length - 1) {
+            nextWord = wordsInDirection[currentIndex + 1];
+          }
+        }
+        
+        // If no next word found, switch direction and go to first word in opposite direction
+        if (!nextWord) {
+          const oppositeDirection = $selectedDirection === 'across' ? 'down' : 'across';
+          const wordsInOppositeDirection = $words
+            .filter(w => w.direction === oppositeDirection)
             .sort((a, b) => {
-              // Sort by grid number first
               if (a.number !== b.number) return a.number - b.number;
-              // If same number, sort by position
               if (a.startRow !== b.startRow) return a.startRow - b.startRow;
               return a.startCol - b.startCol;
             });
           
-          let nextWord: Word | undefined;
-          
-          if (currentWord) {
-            // Find the next word by number (not by position)
-            const currentIndex = wordsInDirection.findIndex(w => w.id === currentWord.id);
-            if (currentIndex >= 0 && currentIndex < wordsInDirection.length - 1) {
-              nextWord = wordsInDirection[currentIndex + 1];
-            }
+          if (wordsInOppositeDirection.length > 0) {
+            nextWord = wordsInOppositeDirection[0];
+            selectedDirection.set(oppositeDirection);
+          } else if (wordsInDirection.length > 0) {
+            // Fallback: wrap to first word in same direction if no words in opposite direction
+            nextWord = wordsInDirection[0];
           }
-          
-          // If no next word found, switch direction and go to first word in opposite direction
-          if (!nextWord) {
-            const oppositeDirection = $selectedDirection === 'across' ? 'down' : 'across';
-            const wordsInOppositeDirection = $words
-              .filter(w => w.direction === oppositeDirection)
-              .sort((a, b) => {
-                if (a.number !== b.number) return a.number - b.number;
-                if (a.startRow !== b.startRow) return a.startRow - b.startRow;
-                return a.startCol - b.startCol;
-              });
-            
-            if (wordsInOppositeDirection.length > 0) {
-              nextWord = wordsInOppositeDirection[0];
-              selectedDirection.set(oppositeDirection);
-            } else if (wordsInDirection.length > 0) {
-              // Fallback: wrap to first word in same direction if no words in opposite direction
-              nextWord = wordsInDirection[0];
-            }
-          }
-          
-          // Move to the start of the next word
-          if (nextWord) {
-            selectedRow.set(nextWord.startRow);
-            selectedCol.set(nextWord.startCol);
-            selectedDirection.set(nextWord.direction);
+        }
+        
+        // Move to the start of the next word
+        if (nextWord) {
+          selectedRow.set(nextWord.startRow);
+          selectedCol.set(nextWord.startCol);
+          selectedDirection.set(nextWord.direction);
             updateSelectedWordId();
           }
         }
@@ -807,35 +807,35 @@
         }
       } else {
         // Normal edit mode
-        grid.update(g => {
-          const newGrid = g.map(row => [...row]);
-          newGrid[$selectedRow] = [...newGrid[$selectedRow]];
-          newGrid[$selectedRow][$selectedCol] = { type: 'empty' };
-          return applySymmetry(newGrid, $selectedRow, $selectedCol, symType, totalRows, totalCols);
-        });
+      grid.update(g => {
+        const newGrid = g.map(row => [...row]);
+        newGrid[$selectedRow] = [...newGrid[$selectedRow]];
+        newGrid[$selectedRow][$selectedCol] = { type: 'empty' };
+        return applySymmetry(newGrid, $selectedRow, $selectedCol, symType, totalRows, totalCols);
+      });
       }
       
       // Always move to previous cell in current direction, skipping over black cells
       const updatedGrid = $isPlayMode && $playGrid ? get(playGrid) : get(grid);
       
       if (updatedGrid) {
-        if ($selectedDirection === 'across') {
-          // Move left, skipping over black cells
-          let prevCol = $selectedCol - 1;
-          while (prevCol >= 0 && updatedGrid[$selectedRow]?.[prevCol]?.type === 'black') {
-            prevCol--;
-          }
-          if (prevCol >= 0) {
-            selectedCol.set(prevCol);
-          }
-        } else if ($selectedDirection === 'down') {
-          // Move up, skipping over black cells
-          let prevRow = $selectedRow - 1;
-          while (prevRow >= 0 && updatedGrid[prevRow]?.[$selectedCol]?.type === 'black') {
-            prevRow--;
-          }
-          if (prevRow >= 0) {
-            selectedRow.set(prevRow);
+      if ($selectedDirection === 'across') {
+        // Move left, skipping over black cells
+        let prevCol = $selectedCol - 1;
+        while (prevCol >= 0 && updatedGrid[$selectedRow]?.[prevCol]?.type === 'black') {
+          prevCol--;
+        }
+        if (prevCol >= 0) {
+          selectedCol.set(prevCol);
+        }
+      } else if ($selectedDirection === 'down') {
+        // Move up, skipping over black cells
+        let prevRow = $selectedRow - 1;
+        while (prevRow >= 0 && updatedGrid[prevRow]?.[$selectedCol]?.type === 'black') {
+          prevRow--;
+        }
+        if (prevRow >= 0) {
+          selectedRow.set(prevRow);
           }
         }
       }
@@ -956,33 +956,33 @@
         }
       } else {
         // Normal edit mode
-        grid.update(g => {
-          const newGrid = g.map(row => [...row]);
-          newGrid[$selectedRow] = [...newGrid[$selectedRow]];
-          newGrid[$selectedRow][$selectedCol] = { type: 'letter', letter };
-          return newGrid;
-        });
-        
-        // Move to next cell in current direction, skipping over black cells
-        const updatedGrid = get(grid);
-        
-        if ($selectedDirection === 'across') {
-          // Move right, skipping over black cells
-          let nextCol = $selectedCol + 1;
-          while (nextCol < gridCols && updatedGrid[$selectedRow]?.[nextCol]?.type === 'black') {
-            nextCol++;
-          }
-          if (nextCol < gridCols) {
-            selectedCol.set(nextCol);
-          }
-        } else if ($selectedDirection === 'down') {
-          // Move down, skipping over black cells
-          let nextRow = $selectedRow + 1;
-          while (nextRow < gridRows && updatedGrid[nextRow]?.[$selectedCol]?.type === 'black') {
-            nextRow++;
-          }
-          if (nextRow < gridRows) {
-            selectedRow.set(nextRow);
+      grid.update(g => {
+        const newGrid = g.map(row => [...row]);
+        newGrid[$selectedRow] = [...newGrid[$selectedRow]];
+        newGrid[$selectedRow][$selectedCol] = { type: 'letter', letter };
+        return newGrid;
+      });
+      
+      // Move to next cell in current direction, skipping over black cells
+      const updatedGrid = get(grid);
+      
+      if ($selectedDirection === 'across') {
+        // Move right, skipping over black cells
+        let nextCol = $selectedCol + 1;
+        while (nextCol < gridCols && updatedGrid[$selectedRow]?.[nextCol]?.type === 'black') {
+          nextCol++;
+        }
+        if (nextCol < gridCols) {
+          selectedCol.set(nextCol);
+        }
+      } else if ($selectedDirection === 'down') {
+        // Move down, skipping over black cells
+        let nextRow = $selectedRow + 1;
+        while (nextRow < gridRows && updatedGrid[nextRow]?.[$selectedCol]?.type === 'black') {
+          nextRow++;
+        }
+        if (nextRow < gridRows) {
+          selectedRow.set(nextRow);
           }
         }
       }

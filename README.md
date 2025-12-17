@@ -1,91 +1,35 @@
-# Crossroads - Crossword Builder
+# Crossroads
 
 A crossword puzzle builder built with Svelte, TypeScript, and Vite.
 
-## 🚀 Deployment
+## Features
 
-This project is configured to deploy automatically to GitHub Pages using GitHub Actions.
+### Grid Panel
+- **Grid Controls**: Adjust grid dimensions, set symmetry
 
-### Initial Setup
+### Fill Panel
+- **Word Suggestions**: Get word suggestions based on current fill pattern
+- **Word Lists**: Multiple built-in word lists (dictionaries, word games, etc.)
+- **Filtering & Sorting**: Filter by rating, sort alphabetically or by rating
+- **Pattern Matching**: Automatically detects word patterns from grid fill
 
-1. **Create a GitHub repository** (if you haven't already):
-   ```bash
-   git remote add origin https://github.com/YOUR_USERNAME/crossroads.git
-   git branch -M main
-   git push -u origin main
-   ```
+### Clues Panel
+- **Clue Management**: Add and edit clues for each word
+- **Quick Access**: Click clues to navigate to corresponding words in the grid
 
-2. **Enable GitHub Pages**:
-   - Go to your repository on GitHub
-   - Navigate to **Settings** → **Pages**
-   - Under **Source**, select **GitHub Actions**
-   - The workflow will automatically deploy when you push to the `main` branch
+### Lookup Panel
+- **Word Search**: Search for words and get clue suggestions
+- **Clue Database**: Browse clues by outlet, keyword, or search query
+- **Auto-populate**: Automatically searches when a complete word is selected
 
-3. **First Deployment**:
-   - Push your code to GitHub:
-     ```bash
-     git add .
-     git commit -m "Initial commit with GitHub Pages setup"
-     git push
-     ```
-   - Go to the **Actions** tab in your repository to see the deployment progress
-   - Once complete, your site will be available at: `https://YOUR_USERNAME.github.io/crossroads/`
+### Info Panel
+- **Puzzle Information**: Set puzzle title, notes, and author information
+- **Collaborators**: Add multiple collaborators with roles (Constructor, Cluer, Editor)
+- **Save & Load**: Save puzzles to browser localStorage and load them later
+- **Import/Export**: Import and export puzzles in `.puz` format
+- **Puzzle Management**: View, load, delete, and manage saved puzzles
+- **Statistics**: View puzzle statistics (word count, average word length, etc.)
+- **Word Length Hover**: Hover over word length indicators to see matching words
 
-### Local Development
-
-```bash
-npm install
-npm run dev
-```
-
-### Building for Production
-
-```bash
-npm run build
-```
-
-The built files will be in the `dist` directory, ready for deployment.
-
-## Recommended IDE Setup
-
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
-
-## Need an official Svelte framework?
-
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
-
-## Technical considerations
-
-**Why use this over SvelteKit?**
-
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
-
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
-
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
-
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
-```
+### Play Mode
+- **Puzzle Playback**: Play saved puzzles or imported `.puz` files

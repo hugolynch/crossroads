@@ -9,7 +9,7 @@
   import { getWordCells } from './lib/gridUtils';
 
   let rightPanelCollapsed = false;
-  let rightPanelWidth = 600;
+  let rightPanelWidth = 600; // Default width, minimum is enforced in resize handler
 
   let isResizingRight = false;
   let resizeStartX = 0;
@@ -23,7 +23,7 @@
   let completionMessageTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Load autosave on mount
-  onMount(async () => {
+  onMount(() => {
     // Close dropdowns when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -147,6 +147,8 @@
 
   function handleRightResizeStart(event: MouseEvent) {
     if (rightPanelCollapsed) return;
+    // Don't allow resizing on mobile
+    if (window.innerWidth <= 768) return;
     isResizingRight = true;
     resizeStartX = event.clientX;
     resizeStartRightWidth = rightPanelWidth;
@@ -160,7 +162,8 @@
   function handleRightResizeMove(event: MouseEvent) {
     if (!isResizingRight) return;
     const deltaX = resizeStartX - event.clientX; // Inverted because right panel
-    const newWidth = Math.max(150, Math.min(800, resizeStartRightWidth + deltaX));
+    // Minimum width increased to 300px to ensure tabs don't overlap
+    const newWidth = Math.max(300, Math.min(800, resizeStartRightWidth + deltaX));
     rightPanelWidth = newWidth;
   }
 
@@ -531,7 +534,7 @@
     {rightPanelCollapsed ? '◀' : '▶'}
   </button>
   <div 
-    class="right-panel" 
+    class="right-panel-wrapper"
     class:collapsed={rightPanelCollapsed}
     class:resizing={isResizingRight}
     style="width: {rightPanelCollapsed ? 0 : rightPanelWidth}px"
@@ -550,7 +553,53 @@
     position: relative;
   }
 
-  .right-panel {
+  /* Mobile layout: stack vertically */
+  @media (max-width: 768px) {
+    main {
+      flex-direction: column;
+      height: auto;
+      min-height: 100vh;
+    }
+
+    .center-panel {
+      flex: 0 0 auto;
+      min-height: 50vh;
+      order: 1;
+    }
+
+    .right-panel-wrapper {
+      width: 100% !important;
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: 50vh;
+      order: 2;
+    }
+
+    .right-panel-wrapper.collapsed {
+      display: none;
+    }
+
+    .resize-handle {
+      display: none;
+    }
+
+    .collapse-button {
+      display: none;
+    }
+  }
+
+  /* Desktop layout: side by side */
+  @media (min-width: 769px) {
+    main {
+      flex-direction: row;
+    }
+
+    .right-panel-wrapper {
+      order: 3;
+    }
+  }
+
+  .right-panel-wrapper {
     background: var(--carbon-gray-10);
     border: none;
     overflow-y: auto;
@@ -558,11 +607,11 @@
     flex-shrink: 0;
   }
 
-  .right-panel:not(.collapsed):not(.resizing) {
+  .right-panel-wrapper:not(.collapsed):not(.resizing) {
     transition: width 0.2s ease;
   }
 
-  .right-panel.collapsed {
+  .right-panel-wrapper.collapsed {
     border: none;
     overflow: hidden;
   }
@@ -589,10 +638,6 @@
 
   .resize-handle:hover {
     background: var(--carbon-blue-60);
-  }
-
-  .resize-handle-left {
-    margin-left: 0;
   }
 
   .resize-handle-right {
